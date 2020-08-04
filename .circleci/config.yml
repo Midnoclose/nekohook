@@ -1,0 +1,28 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/nekohook
+    docker:
+      - image: ubuntu:rolling
+    steps:
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get update -qq
+            apt-get install -y g++ cmake git libx11-dev
+      - checkout
+      - run:
+          name: Clone dependancies
+          command: |
+            git submodule update --init
+      - run:
+          name: Generate CMake files
+          command: |
+            cmake .
+      - run:
+          name: Build
+          command: |
+            make -j2
+      - store_artifacts:
+          path: ~/nekohook/libnekohook.so
+          destination: libnekohook.so

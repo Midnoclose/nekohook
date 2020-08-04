@@ -1,0 +1,41 @@
+# Visual Studio 2015 cache/options directory
+.vs/
+# Visual Studio Code
+.vscode/
+
+# Visual C++ cache files
+ipch/
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+
+# Cmake Build files
+CMakeFiles/*
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+cotire/*
+nekohook_CXX_cotire.cmake
+build/*
+compile_commands.json
+
+# Don't ignore binary resource files
+!res/bin/*
+
+# Ignore our closed source files
+#src/modules/*
+#src/drm/*
+# Allow some modules to be open
+#!src/modules/xlib/*
+#!src/modules/gl_draw/*
+#!src/modules/jni/*
+
+# Binaries
+*libnekohook*
+libnekohook.so
+nekohook.dll
+bin/*
