@@ -54,7 +54,7 @@ class BoxBase <T, 2> {
     static_assert(T::length() == 2);
 protected:
     BoxBase() {}
-    BoxBase(const T& _first, const T& _second) 
+    BoxBase(T _first, T _second) 
         : first(_first),  second(_second) {}
 public:
     
@@ -65,7 +65,7 @@ public:
     union { T second, size; };    
 
     T GetMax() const { return this->origin + this->size; }
-    T& GetSize() const { return this->size; }
+    T GetSize() const { return this->size; }
     
     T GetPoint(int idx) const {
         switch (idx) {
@@ -87,7 +87,7 @@ public:
         };
     }
 
-    bool Contains(const T& in) const {
+    bool Contains(T in) const {
         if (in.x > this->origin.x && in.y > this->origin.y) {
             T max = this->GetMax();
             return (in.x < max.x && in.x < max.y);
@@ -95,7 +95,7 @@ public:
         return false;
      }
     
-    bool SegmentIntersects(const T& src, const T& dest) const {
+    bool SegmentIntersects(T src, T dest) const {
         if ((dest.x > this->min.x && src.x > this->min.x) &&
             (dest.y > this->min.y && src.y > this->min.y)) {
             T max = this->GetMax();
@@ -130,19 +130,18 @@ public:
             assert(false);
         }
     }
-    void ExpandTo(const T& v) {
-        if (this->origin.x > v.origin.x)
-            this->Expand(Direction::kNegX, this->origin.x - v.origin.x);
-        if (this->origin.y > v.origin.y)
-            this->Expand(Direction::kNegY, this->origin.y - v.origin.y);
-        T t_max = this->GetMax(), v_max = v.GetMax();
-        if (t_max.x < v_max.x)
-            this->Expand(Direction::kPosX, v_max.x - this->origin.x);
-        if (t_max.y < v_max.y)
-            this->Expand(Direction::kPosY, v_max.y - this->origin.y);
+    void ExpandTo(T v) {
+        if (this->origin.x > v.x)
+            this->Expand(Direction::kNegX, this->origin.x - v.x);
+        if (this->origin.y > v.y)
+            this->Expand(Direction::kNegY, this->origin.y - v.y);
+        T t_max = this->GetMax();
+        if (t_max.x < v.x)
+            this->Expand(Direction::kPosX, v.x - this->origin.x);
+        if (t_max.y < v.y)
+            this->Expand(Direction::kPosY, v.y - this->origin.y);
     }
-
-    
+    // TODO: Center around
 };
 
 template<typename T>
@@ -150,7 +149,7 @@ class BoxBase <T, 3> {
     static_assert(T::length() == 3);
 protected:
     BoxBase() {}
-    BoxBase(const T& _first, const T& _second) 
+    BoxBase(T _first, T _second) 
         : first(_first),  second(_second) {}
 public:
     
@@ -193,7 +192,7 @@ public:
         };
     }
 
-    bool Contains(const T& i) const {
+    bool Contains(T i) const {
         if (i.x > this->min.x || i.y > this->min.y || i.z > this->min.z)
         if (i.x < this->max.x || i.y < this->max.y || i.z < this->max.z)
             return false;
@@ -201,7 +200,7 @@ public:
     }
 
     // Credits to cathook
-    bool LineIntersects(const T& src, const T& dst) const {
+    bool LineIntersects(T src, T dst) const {
         if (dst.x < this->min.x && src.x < this->min.x) return false;
         if (dst.y < this->min.y && src.y < this->min.y) return false;
         if (dst.z < this->min.z && src.z < this->min.z) return false;
@@ -252,25 +251,27 @@ public:
     using Direction = typename Parent::Direction;
 
     Box() {}
-    Box(const T& _first, const T& _second) 
-        : BoxBase<T, T::length()>(_first, _second) {}
+    Box(T _first, T _second) : Parent(_first, _second) {} 
     Box(std::pair<T, T> v) : Box(v.first, v.second) {}
     template<typename TT>
-    Box(const TT& v) : Box(v.first, v.second) {
+    Box(TT v) : Box(v.first, v.second) {
         static_assert(!std::is_same_v<std::pair<T, T>, TT>);
     }
+
+    template<typename TT>
+    Box<T>& operator=(TT v) { *this = Box<T>(v.first, v.second); }
     
     // Unary arithmetic operators
-    bool operator==(const T& v) const {
+    bool operator==(T v) const {
         return this->first == v.first && this->second == v.second;
     }
-    bool operator!=(const T& v) const {
+    bool operator!=(T v) const {
         return !(*this == v);
     }
-    Box<T> operator+(const T& v) const {
+    Box<T> operator+(T v) const {
         return {this->min + v, this->max + v};
     }
-    Box<T> operator-(const T& v) const {
+    Box<T> operator-(T v) const {
         return {this->min - v, this->max - v};
     }
 
@@ -309,13 +310,16 @@ class ChildBox : Box<T_This> {
     const T_Parent& parent;
 public:
     template<typename... TT> 
-    ChildBox(const T_Parent& _parent, TT... args) : Box<T_This>(args...), parent(_parent) {}
+    ChildBox(T_Parent _parent, TT... args) : Box<T_This>(args...), parent(_parent) {}
     T_Parent GetReal() {
         T_Parent real = parent->GetReal();
         assert(this->size <= real.size - this->origin);
         return {real.origin + this->origin, this->size};
     }
 };
+
+using Box2 = Box<IVec2>;
+using Box3 = Box<Vec3>;
 
 template<int T_length>
 class AngleBase;
@@ -327,7 +331,7 @@ protected:
     template<typename... T>
     AngleBase(T... args) : data(args...) {}
 public:
-    operator const float&() const {
+    operator float() const {
         return this->data;
     }
     operator float&() {
@@ -345,31 +349,50 @@ protected:
         static_assert(!(std::is_same_v<Vec2, T> || ...));
     }
 public:
-    
     using Vec2::operator=;
     template<class T>
     AngleBase operator-(T in) { return *this - Vec2(in); }
     template<class T>
     AngleBase operator+(T in) { return *this + Vec2(in); }
 
-    AngleBase& Clamp();
-    AngleBase Clamp() const;
-    AngleBase& GetDelta(const AngleBase& other_angles) const;
+    AngleBase<2>& Clamp();
+    AngleBase<2> Clamp() const;
+    AngleBase<2> GetDelta(const AngleBase<2>& other_angles) const;
     float GetFov(const Vec3& view_src, const Vec3& dest_point) const;
-    float GetFov(const AngleBase& pointed_angle) const;
-    static AngleBase PointTo(const Vec3& src_point, const Vec3& dest_point);
+    float GetFov(const AngleBase<2>& pointed_angle) const;
+    static AngleBase<2> PointTo(const Vec3& src_point, const Vec3& dest_point);
 };
 
 template<int T_Length>
 using Angle = AngleBase<T_Length>;
-
-Vec3 DirectionalMove(const Vec3& src, const Angle<2>& direction, float amount);
-
-template<typename T>
-using Segment = std::pair<T, T>;
+using Angle1 = Angle<1>;
+using Angle2 = Angle<2>;
 
 template<typename T_Origin, typename T_Angle>
-using Ray = std::pair<T_Origin, T_Angle>;
+class Ray;
+
+template<typename T>
+class Segment : public std::pair<T, T> {
+public:
+    using Parent = std::pair<T, T>;
+    using Parent::Parent;
+    using Parent::operator=;
+    template<typename TT>
+    Segment(Ray<T, TT> r, float dist = 8192.0f) : Parent(r.Cast(dist)){}
+};
+using Segment2 = Segment<IVec2>;
+using Segment3 = Segment<Vec3>;
+
+template<typename T_Origin, typename T_Angle>
+class Ray : public std::pair<T_Origin, T_Angle> {
+public:
+    using Parent = std::pair<T_Origin, T_Angle>;
+    using Parent::Parent;
+    using Parent::operator=;
+    T_Origin Cast(float dist = 8192.0f);
+};
+using Ray2 = Ray<IVec2, Angle1>;
+using Ray3 = Ray<Vec3, Angle2>;
 
 template<typename T_Origin, typename T_Distance = float>
 using Sphereoid = std::pair<T_Origin, T_Distance>;

@@ -21,32 +21,30 @@
 
 #include "game/trace.hpp"
 #include "ui/console.hpp"
-#include "ui/settings/bool.hpp"
-#include "ui/settings/enum.hpp"
-#include "ui/settings/math.hpp"
+#include "ui/var.hpp"
 #include "util/chrono.hpp"
 
 #include "followbot.hpp"
 
 namespace nekohook::features::followbot {
 
-namespace stng {
-using namespace setting;
+namespace ui {
+using namespace nekohook::ui;
 static TreeMap menu({"Followbot"});
 
-static Bool enabled(menu, "Enabled", false);
-static Bool roambot(menu, "Roaming", true);
-static Bool draw_crumb(menu, "Draw Crumbs", true);
-static Int min_distance(menu, "Distance", 175);
-static Int min_crumb_distance(menu, "Crumb Distance", 30);
-static Int crumb_distance(menu, "No Crumb Distance", 30);
-static Int activation_distance(menu, "Activation Distance", 175);
-static Int wanted_unique_id(menu, "Follow Id", 0);
+static Var<bool> enabled(menu, "Enabled", false);
+static Var<bool> roambot(menu, "Roaming", true);
+static Var<bool> draw_crumb(menu, "Draw Crumbs", true);
+static Var<int> min_distance(menu, "Distance", 175);
+static Var<int> min_crumb_distance(menu, "Crumb Distance", 30);
+static Var<int> crumb_distance(menu, "No Crumb Distance", 30);
+static Var<int> activation_distance(menu, "Activation Distance", 175);
+static Var<int> wanted_unique_id(menu, "Follow Id", 0);
 }
 
 // TODO, make followbot mooch off of walkbot if no direct path is found to the main target
 
-static std::deque<math::Vec3> breadcrumbs;
+static std::deque<geo::Vec3> breadcrumbs;
 Entity* follow_target = nullptr;
 static Timer idle_time;
 
@@ -57,11 +55,11 @@ static bool ShouldFollow(LocalPlayer* local_ent, Entity* entity) {
         entity->IsEnemy())
         return false;
 
-    if (stng::activation_distance && entity->GetDistance() > float(stng::activation_distance))
+    if (ui::activation_distance && entity->GetDistance() > float(ui::activation_distance))
         return false;
 
-    if (std::optional<math::Vec3> loc = entity->GetLocation())
-        if (!trace::Entity(entity, local_ent->GetCameraPosition(), *loc, local_ent))
+    if (std::optional<geo::Vec3> loc = entity->GetLocation())
+        if (!trace::Entity(entity, {local_ent->GetCameraPosition(), *loc}, local_ent))
             return false;
 
     return true;
@@ -80,7 +78,7 @@ static void PruneCrumbs(ConditionFn Condition) {
 static void WorldTick() {
     #define ClearRet() ({follow_target = nullptr; return;})
 
-    if (!stng::enabled)
+    if (!ui::enabled)
         ClearRet();
 
     LocalPlayer* local_ent = Entity::GetLocalPlayer();
@@ -96,18 +94,18 @@ static void WorldTick() {
     if (!follow_target) {
         breadcrumbs.clear(); 
 
-        if (stng::wanted_unique_id) {
+        if (ui::wanted_unique_id) {
             int ent_count = Entity::GetCount();
             for (int i = 0; i < ent_count; i++) {
                 Entity* entity = Entity::Get(i);
                 if (!ShouldFollow(local_ent, entity))
                     continue;
-                if (stng::wanted_unique_id == entity->GetUserId())
+                if (ui::wanted_unique_id == entity->GetUserId())
                     { follow_target = entity; break; }
             }
         }
-        if (!follow_target && stng::roambot) {
-            float closest_distance = stng::activation_distance;
+        if (!follow_target && ui::roambot) {
+            float closest_distance = ui::activation_distance;
             int ent_count = Entity::GetCount();
             for (int i = 0; i < ent_count; i++) {
                 Entity* entity = Entity::Get(i);
@@ -123,16 +121,16 @@ static void WorldTick() {
         idle_time.Reset();
     }
 
-    math::Vec3 target_pos = *follow_target->GetLocation();
-    math::Vec3 local_pos = *local_ent->GetLocation();
-    float dist_to_target = math::Distance(local_pos, target_pos);
-    if (dist_to_target < stng::crumb_distance) {
+    geo::Vec3 target_pos = *follow_target->GetLocation();
+    geo::Vec3 local_pos = *local_ent->GetLocation();
+    float dist_to_target = geo::Distance(local_pos, target_pos);
+    if (dist_to_target < ui::crumb_distance) {
         breadcrumbs.clear();
         local_ent->WalkTo(target_pos);
         return;
     }
 
-    if (breadcrumbs.empty() || (!follow_target->IsAirborne() && math::Distance(target_pos, breadcrumbs.back()) > stng::min_crumb_distance))
+    if (breadcrumbs.empty() || (!follow_target->IsAirborne() && geo::Distance(target_pos, breadcrumbs.back()) > ui::min_crumb_distance))
         breadcrumbs.emplace_back(target_pos);
     
     std::optional<Entity::Hitbox> collision = local_ent->GetCollision();
@@ -142,11 +140,11 @@ static void WorldTick() {
         });
     else
         PruneCrumbs([&](auto i) -> bool {
-            return math::Distance(local_pos, breadcrumbs.front()) > 60.f;
+            return geo::Distance(local_pos, breadcrumbs.front()) > 60.f;
         });
 
     // Follow the crumbs when too far away, or just starting to follow
-    if (dist_to_target > stng::min_distance) {
+    if (dist_to_target > ui::min_distance) {
         if (idle_time.Check(std::chrono::seconds(3)))
             follow_target = nullptr;
         else

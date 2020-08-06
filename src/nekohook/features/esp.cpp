@@ -20,58 +20,52 @@
 #include <string.h>
 #include <algorithm> 
 
-#include "ui/settings/bool.hpp"
-#include "ui/settings/math.hpp"
-#include "ui/settings/enum.hpp"
-#include "ui/graphical/draw.hpp"
+#include "ui/var.hpp"
+#include "gfx/geometry.hpp"
 
 #include "esp.hpp"
 
 namespace nekohook::features::esp {
 
-namespace stng {
-using namespace setting;
+namespace ui {
+using namespace nekohook::ui;
 TreeMap menu({"Visuals", "Esp"});
 
-static Bool enabled(menu, "Enabled", true);
+static Var<bool> enabled(menu, "Enabled", true);
 // Target selection
-static Bool do_players(menu, "Players", true);
-static Bool do_other_hostile(menu, "Other Hostile", true);
-static StrEnum team_enum({"Enemy", "Friendly", "Both"});
-static Enum do_team(menu, team_enum, "Team", 2);
+static Var<bool> do_players(menu, "Players", true);
+static Var<bool> do_other_hostile(menu, "Other Hostile", true);
+static Var<Enum> do_team(menu, "Team", 2, {"Enemy", "Friendly", "Both"});
 // Box esp + Options
-static StrEnum box_enum({"None", "Normal", "Corners"});
-static Enum show_box(menu, box_enum, "Box", 1);
-static Int corner_size(menu, "Box Corner Size", 10);
+static Var<Enum> show_box(menu, "Box", 1, {"None", "Normal", "Corners"});
+static Var<int> corner_size(menu, "Box Corner Size", 10);
 // Strings
-static StrEnum side_pos_enum({"Top", "Bottom", "Left", "Right"});
-static StrEnum align_enum({"Left", "Right", "Center"});
-static Enum text_side(menu, side_pos_enum, "Text Side", 2);
-static Enum text_align(menu, align_enum, "Text alignment", 0);
-static Bool text_align_force(menu, "Text alignment force", false);
-static Enum text_box_align(menu, {"Top", "Bottom"}, "Text box alignment", 0);
+static Enum side_pos_enum({"Top", "Bottom", "Left", "Right"});
+static Enum align_enum();
+static Var<Enum> text_side(menu, "Text Side", 2, side_pos_enum);
+static Var<Enum> text_align(menu, "Text alignment", 0, {"Left", "Right", "Center"});
+static Var<bool> text_align_force(menu, "Text alignment force", false);
+static Var<Enum> text_box_align(menu, "Text box alignment", 0, {"Top", "Bottom"});
 // Health Esp
-static StrEnum show_health_enum({"None", "Text", "Healthbar", "Both"});
-static Enum show_health(menu, show_health_enum, "Health", 3);
-static Enum health_bar_pos(menu, side_pos_enum, "Health Bar Position", 0);
+static Var<Enum> show_health(menu, "Health", 3, {"None", "Text", "Healthbar", "Both"});
+static Var<Enum> health_bar_pos(menu, "Health Bar Position", 0, side_pos_enum);
 
 // Other strings
-static Bool show_name(menu, "Name", true);
-static Bool show_distance(menu, "Distance", false);
+static Var<bool> show_name(menu, "Name", true);
+static Var<bool> show_distance(menu, "Distance", false);
 // Bone esp
-static Bool show_bone(menu, "Bones", true);
-static Bool show_bone_debug(menu, "Bones Debug", false);
+static Var<bool> show_bone(menu, "Bones", true);
+static Var<bool> show_bone_debug(menu, "Bones Debug", false);
 // Tracers
-static StrEnum tracers_enum({"OFF", "CENTER", "BOTTOM"});
-static Enum show_tracers(menu, tracers_enum, "Tracers", 2);
+static Enum tracers_enum();
+static Var<Enum> show_tracers(menu, "Tracers", 2, {"OFF", "CENTER", "BOTTOM"});
 // Other
-static StrEnum box_method_enum({"Collision", "Bone", "Hitbox"});
-static Enum box_method(menu, box_method_enum, "Box Method", 0);
-static Bool box_fallthrough(menu, "Box Method Fallthrough", false); 
+static Var<Enum> box_method(menu, "Box Method", 0, {"Collision", "Bone", "Hitbox"});
+static Var<bool> box_fallthrough(menu, "Box Method Fallthrough", false); 
 // Pickups
-static Bool show_pickup_health(menu, "Health Pickups", false);
-static Bool show_pickup_ammo(menu, "Ammo Pickups", false);
-static Bool show_pickup_sheild(menu, "Sheild", false);
+static Var<bool> show_pickup_health(menu, "Health Pickups", false);
+static Var<bool> show_pickup_ammo(menu, "Ammo Pickups", false);
+static Var<bool> show_pickup_sheild(menu, "Sheild", false);
 }
 
 // TODO: better esp "types" using an enum and switch
@@ -93,7 +87,7 @@ static Bool show_pickup_sheild(menu, "Sheild", false);
 class BoxData {
     enum class State { kUnchecked, kUnuseable, kUseable };
     State state = State::kUnchecked;
-    math::Box<gfx::Point> box = {{65536, 65536}, {0, 0}};
+    gfx::Box box = {{65536, 65536}, {0, 0}};
     static std::vector<Entity::Bone> GetBones(Entity* entity) {
         std::vector<Entity::Bone> bones;
         bones.reserve(Entity::BonePos::kCount);
@@ -123,19 +117,19 @@ public:
         this->state = State::kUnuseable;
         
         gfx::WTS wts_res;
-        switch(stng::box_method) {
+        switch(ui::box_method) {
         case 2: { // Hitbox
             const auto hitboxes = GetBoxes(entity);
             if (!hitboxes.empty()) {
                 for (const auto i : hitboxes) {
                     for (const auto ii : i.GetPoints()) {
-                        if (!(wts_res = gfx::WTS(ii)))
+                        if (!std::get<bool>(wts_res = gfx::FromWorld(ii)))
                              return false;
-                        this->box.ExpandTo(*wts_res);
+                        this->box.ExpandTo(std::get<gfx::Point>((wts_res)));
                     }
                 }
                 this->state = State::kUseable;
-                if (!stng::box_fallthrough)
+                if (!ui::box_fallthrough)
                     break; 
             }
         } 
@@ -143,12 +137,12 @@ public:
             const auto bones = GetBones(entity);
             if (!bones.empty()) {
                 for (const auto i : bones) {
-                    if (!(wts_res = gfx::WTS(i)))
+                    if (!std::get<bool>(wts_res = gfx::FromWorld(i)))
                         return false;
-                    this->box.ExpandTo(*wts_res);
+                    this->box.ExpandTo(std::get<gfx::Point>(wts_res));
                 }
                 this->state = State::kUseable;
-                if (!stng::box_fallthrough)
+                if (!ui::box_fallthrough)
                     break; 
             }
         }
@@ -157,9 +151,9 @@ public:
             if ((collision = entity->GetCollision())) {
                 auto points = collision.value().GetPoints();
                 for (auto& i : points) {
-                    if (!(wts_res = gfx::WTS(i))) 
+                    if (!std::get<bool>(wts_res = gfx::FromWorld(i))) 
                         return false;
-                    this->box.ExpandTo(*wts_res);
+                    this->box.ExpandTo(std::get<gfx::Point>(wts_res));
                 }
                 this->state = State::kUseable;
             }
@@ -171,12 +165,12 @@ public:
         return this->state == State::kUseable;
     }
     bool IsUseable() const { return this->state == State::kUseable; }
-    const math::Box<gfx::Point>& GetBox() const { 
+    const geo::Box<gfx::Point>& GetBox() const { 
         assert(this->IsUseable());
         return this->box;
     }
 };
-
+/*
 void DrawTracer(Entity* entity, const gfx::Color& clr);
 void DrawTracer(Entity* entity, const BoxData&, const gfx::Color& clr) {
     // TODO, draw to bottom of box
@@ -184,10 +178,10 @@ void DrawTracer(Entity* entity, const BoxData&, const gfx::Color& clr) {
 }
 void DrawTracer(Entity* entity, const gfx::Color& clr) {
     
-    if (std::optional<math::Vec3> origin = entity->GetOrigin()) {
+    if (std::optional<geo::Vec3> origin = entity->GetOrigin()) {
         gfx::Point bounds = gfx::GetScreenSize();
         gfx::Point center = {bounds.x / 2, bounds.y};
-        if (stng::show_tracers == 2)
+        if (ui::show_tracers == 2)
             center.y /= 2;
         gfx::Line(center, *gfx::WTS(*origin), clr);
     }
@@ -235,7 +229,7 @@ void DrawBones(Entity* entity, const gfx::Color& clr) {
         }
     }
 
-    if (stng::show_bone_debug) {
+    if (ui::show_bone_debug) {
         for (int ii = 0; ii < Entity::BonePos::kCount; ii++) {
             std::optional<Entity::Bone> bone;
             if ((bone = entity->GetBone(Entity::BonePos(ii))))
@@ -258,9 +252,9 @@ static void DrawHealthBar(Entity* entity, BoxData& box_data, gfx::Color& clr) {
     constexpr int girth = 6;
     float health_percentage = std::min(static_cast<float>(entity->GetHealth()) / static_cast<float>(entity->GetMaxHealth()), 1.0f);
     
-    math::Box<gfx::Point> bar_box;
-    math::Box<gfx::Point> health_box;
-    switch(int(stng::health_bar_pos)) {
+    geo::Box<gfx::Point> bar_box;
+    geo::Box<gfx::Point> health_box;
+    switch(int(ui::health_bar_pos)) {
     case 0: { // Left
          bar_box = {
             {box.min.x - (bar_spacing + girth), // shift right 
@@ -269,7 +263,7 @@ static void DrawHealthBar(Entity* entity, BoxData& box_data, gfx::Color& clr) {
                 box.max.y - 3} // reduce bottom spacing
         };
         health_box = bar_box;
-        int shift = health_box.max.y - (health_box.max.y * health_percentage/*length*/);
+        int shift = health_box.max.y - (health_box.max.y * health_percentage length);
         health_box.min.y += shift; // shift top down // TODO: shrink
         health_box.max.y -= shift; // shift bottom back up
         box_data.Expand(BoxData::Direction::kLeft, bar_spacing + girth);
@@ -283,7 +277,7 @@ static void DrawHealthBar(Entity* entity, BoxData& box_data, gfx::Color& clr) {
                 box.max.y - 3} // reduce bottom spacing
         };
         health_box = bar_box;
-        int shift = health_box.max.y - (health_box.max.y * health_percentage/*length*/);
+        int shift = health_box.max.y - (health_box.max.y * health_percentagelength*);
         health_box.min.y += shift; // shift top down
         health_box.max.y -= shift; // shift bottom back up
         box_data.Expand(BoxData::Direction::kRight, bar_spacing + girth);
@@ -297,7 +291,7 @@ static void DrawHealthBar(Entity* entity, BoxData& box_data, gfx::Color& clr) {
                 girth} // reduce bottom spacing
         };
         health_box = bar_box;
-        int shift = health_box.max.y - (health_box.max.y * health_percentage/*length*/);
+        int shift = health_box.max.y - (health_box.max.y * health_percentagelength);
         health_box.min.y += shift; // shift top down
         health_box.max.y -= shift; // shift bottom back up
         box_data.Expand(BoxData::Direction::kUp, bar_spacing + girth);
@@ -314,7 +308,7 @@ static void DrawHealthBar(Entity* entity, BoxData& box_data, gfx::Color& clr) {
     gfx::RectFilled(health_box.min, health_box.max, entity->GetHealthColor());
 }
 
-/*class StringDrawer {
+class StringDrawer {
     enum class Pos {
         kTop,
         kBottom,
@@ -376,10 +370,10 @@ public:
     }
     Draw();
     Finish();
-};*/
+};
 
 void Draw() {
-    if (!stng::enabled /*|| !game::GetInGame()*/) return;
+    if (!ui::enabled || !game::GetInGame()) return;
 
     LocalPlayer* local_ent = Entity::GetLocalPlayer();
     const bool is_thirdperson = local_ent->IsThirdperson();
@@ -393,36 +387,36 @@ void Draw() {
             if (local_ent && !is_thirdperson && local_ent == entity) continue;
             if (!module::ShouldEsp(entity)) continue;
             bool enemy = entity->IsEnemy();
-            if (stng::do_team != 2 && (stng::do_team == 0 ? !enemy : enemy)) continue;
+            if (ui::do_team != 2 && (ui::do_team == 0 ? !enemy : enemy)) continue;
         }
         // TODO: cache entitys, rank by furthest distance first, and draw on them from furthest to closest. use reserve!!!
         
         auto clr = entity->GetColor();
         Entity::Type type = entity->GetType();
-        if ((stng::do_players && type == Entity::Type::kPlayer) ||
-            (stng::do_other_hostile && type == Entity::Type::kOtherHostile)) {
+        if ((ui::do_players && type == Entity::Type::kPlayer) ||
+            (ui::do_other_hostile && type == Entity::Type::kOtherHostile)) {
             if (!entity->IsAlive()) 
                 continue;
 
             BoxData box;
             box.MakeUseable(entity);
 
-            if (stng::show_tracers) 
+            if (ui::show_tracers) 
                 DrawTracer(entity, box, clr);
 
-            if (stng::show_bone)
+            if (ui::show_bone)
                 DrawBones(entity, clr);
 
-            if (stng::show_box)
+            if (ui::show_box)
                 DrawBox(entity, box, clr);
             
-            if (stng::show_health >= 2) 
+            if (ui::show_health >= 2) 
                 DrawHealthBar(entity, box, clr);
                 
         }
 
         // Strings
-        /*StartDrawSrrings();
+        StartDrawSrrings();
         
         // Get our strings
         std::vector<std::pair<std::string_view, RGBColor>> str_cache;
@@ -524,8 +518,8 @@ void Draw() {
                     draw_point.second += size.second;
                 }
             }
-        }*/
+        }
     }
 }
-
+*/
 }  // namespace features::esp

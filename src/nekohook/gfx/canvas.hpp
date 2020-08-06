@@ -19,24 +19,25 @@
 
 #pragma once
 
-#include "ui/graphical/draw.hpp"
-#include "var.hpp"
+#include "color.hpp"
+#include "geometry.hpp"
 
-namespace nekohook::setting {
+namespace nekohook::gfx {
 
-class Color : public Var {
+class Canvas {
 public:
-    Color(TreeMap, std::string name, const draw::Color& _defaults);
-    Type GetType() override;
-    std::string GetString() override;
-    void SetString(std::string_view) override;
-    void Call(Command::Args) override;
-
-    operator draw::Color() const { return this->value; }
-    bool operator==(const draw::Color& in_value) const { return this->value == in_value; }
-public:
-    draw::Color value;
-    const draw::Color defaults;
+    virtual void StartDraw() = 0;
+    virtual void SetColor(const Color&) = 0;
+    virtual void DrawLine(const Segment&, int thickness) = 0;
+    virtual void DrawOutline(const Box&, int thickness);
+    virtual void DrawFilled(const Box&);
+    virtual void DrawOutline(const Circle&, int thickness);
+    virtual void DrawFilled(const Circle&);
+    virtual void EndDraw() = 0;
+    virtual const Point GetSize() = 0;
+    Box GetBox() { return {{0, 0}, this->GetSize()}; }
 };
+
+// TODO: Texture based canvas
 
 }

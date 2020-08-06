@@ -17,20 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "features/aimbot.hpp"
-#include "features/antiaim.hpp"
+#pragma once
 
-#include "events.hpp"
+namespace nekohook::gfx {
 
-namespace neko::hook::events {
+class Canvas;
+Canvas* GetGameCanvas();
 
-void World() {
-    features::aimbot::WorldTick();
-    features::antiaim::WorldTick();
 }
-
-void InGame(bool new_state) {
-    // Playerstate shutdown
-}
-
-}  // namespace neko::events

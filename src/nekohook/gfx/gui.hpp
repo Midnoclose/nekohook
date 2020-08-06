@@ -19,24 +19,11 @@
 
 #pragma once
 
-#include "ui/graphical/draw.hpp"
-#include "var.hpp"
+#include "ui/var.hpp"
 
-namespace nekohook::setting {
+namespace nekohook::gui {
 
-class Path : public Var {
-public:
-    Color(TreeMap, std::string name, const draw::Color& _defaults);
-    Type GetType() override;
-    std::string GetString() override;
-    void SetString(std::string_view) override;
-    void Call(Command::Args) override;
-
-    operator fs::path() const { return this->value; }
-    bool operator==(const fs::path& in_value) const { return this->value == in_value; }
-public:
-    fs::path value;
-    const fs::path defaults;
-};
+void Draw();
+void Register(ui::BaseVar*);
 
 }

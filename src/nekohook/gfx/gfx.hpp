@@ -19,14 +19,10 @@
 
 #pragma once
 
-namespace neko::hook::playerstate {
+namespace nekohook {
 
-enum State { kFriendly = -1, kNone = 0, kRage = 1 };
+namespace events {
+    void Draw();
+} 
 
-State Get(Entity*);
-void Set(Entity*, State);
-void Remove(Entity*);
-bool IsDefault(Entity*);
-bool IsRage(Entity*);
-
-}  // namespace neko::hook
+} // namespace nekohook::draw

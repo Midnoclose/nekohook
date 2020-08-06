@@ -3,7 +3,7 @@
 
 #include "command.hpp"
 
-namespace nekohook::console {
+namespace nekohook::ui::console {
 
 void Exec(std::string_view);
 void Exec(std::string_view name, Command::Args);

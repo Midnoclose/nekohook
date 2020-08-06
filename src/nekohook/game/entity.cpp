@@ -23,9 +23,9 @@ namespace nekohook {
 
 float Entity::GetDistance() const {
     if (LocalPlayer* local_ent = GetLocalPlayer()) {
-        std::optional<math::Vec3> their_loc, our_loc;
+        std::optional<geo::Vec3> their_loc, our_loc;
         if ((their_loc = this->GetLocation()) && (our_loc = local_ent->GetLocation()))
-            return math::Distance(*their_loc, *our_loc);
+            return geo::Distance(*their_loc, *our_loc);
     }
     return 0.0f;
 }
@@ -39,10 +39,10 @@ bool Entity::IsEnemy() const {
     return true;
 }
 
-std::optional<math::Vec3> Entity::GetLocation() const {
-    if (std::optional<math::Box<>> coll = this->GetCollision())
+std::optional<geo::Vec3> Entity::GetLocation() const {
+    if (std::optional<geo::Box3> coll = this->GetCollision())
         return coll.value().GetCenter();
-    else if (std::optional<math::Vec3> origin = this->GetOrigin())
+    else if (std::optional<geo::Vec3> origin = this->GetOrigin())
         return origin; 
     return std::nullopt;
 }

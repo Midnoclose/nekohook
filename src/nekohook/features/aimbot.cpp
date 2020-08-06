@@ -18,53 +18,54 @@
  */
 
 #include "util/chrono.hpp"
-#include "ui/settings/bool.hpp"
-#include "ui/settings/enum.hpp"
-#include "ui/settings/math.hpp"
+#include "ui/var.hpp"
 #include "game/trace.hpp"  // so we can vis check
 
 #include "features/aimbot.hpp"
 
 namespace nekohook::features::aimbot {
-
-namespace stng {
-using namespace setting;
+namespace ui {
+using namespace nekohook::ui;
 TreeMap menu({"Aimbot"});
 
-static Bool enabled(menu, "Enabled", false);
-static StrEnum priority_mode_e({"SMART", "FOV", "DISTANCE", "HEALTH"});
-static Enum priority_mode(menu, priority_mode_e, "Priority Mode", 1);
-static Float fov(menu, "FOV", 180.0f);
-static Enum teammates(menu, {"ENEMY ONLY", "TEAMMATE ONLY", "BOTH"}, "ab_teammates", 0);
-static Bool target_lock(menu, "Target lock", false);
+static Var<bool> enabled(menu, "Enabled", false);
+static Var<Enum> priority_mode(menu, "Priority Mode", 1, {
+    "SMART", "FOV", "DISTANCE", "HEALTH"});
+static Var<float> fov(menu, "FOV", 180.0f);
+static Var<float> max_distance(menu, "Max Distance", 8192.0f);
+static Var<Enum> teammates(menu, "ab_teammates", 0, {
+    "ENEMY ONLY", "TEAMMATE ONLY", "BOTH"});
+static Var<bool> target_lock(menu, "Target lock", false);
 //static Key aimkey(menu, "Aimkey", input::Key::kE);
-static Bool autoshoot(menu, "Auto shoot", true);
-static StrEnum hitbox_mode_e({"AUTO", "AUTO-HEAD", "AUTO-CLOSEST", "HEAD", "CENTER"});
-static Enum hitbox_mode(menu, hitbox_mode_e, "Hitbox Mode", 0);
-static Int smooth_aim(menu, "Smooth", 0);
-static StrEnum silent_aim_e({"OFF", "SNAPBACK", "MODULE"});
-static Enum silent_aim(menu, silent_aim_e, "Silent", 0);
-static Int silent_snaptime(menu, "Silent snaptime", 100, 1000);
-Int multipoint(menu, "Multipoint", 0, 5);
-Float multipoint_ratio(menu, "Multipoint Ratio", 86, 1, 100);
-static Bool can_shoot(menu, "Can Shoot", true);
+static Var<bool> autoshoot(menu, "Auto shoot", true);
+static Enum hitbox_mode_e();
+static Var<Enum> hitbox_mode(menu, "Hitbox Mode", 0, {
+    "AUTO", "AUTO-HEAD", "AUTO-CLOSEST", "HEAD", "CENTER"});
+static Var<int> smooth_aim(menu, "Smooth", 0);
+static Var<Enum> silent_aim(menu, "Silent", 0, {"OFF", "SNAPBACK", "MODULE"});
+static Var<int> silent_snaptime(menu, "Silent snaptime", 100, 1000);
+Var<int> multipoint(menu, "Multipoint", 0, 5);
+Var<float> multipoint_ratio(menu, "Multipoint Ratio", 86, 1, 100);
+static Var<bool> can_shoot(menu, "Can Shoot", true);
 }
 
+// TODO: create seperate aimbot machines to push more optimizations using priority. big think
+
 static std::vector<Entity::Hitbox> GetMultiBoxes(const Entity::Hitbox& hitbox) {
-    math::Box<math::DVec3> ratio = {hitbox.min, hitbox.max};
-    ratio /= multipoint_ratio;
+    geo::Box<geo::DVec3> ratio = {hitbox.min, hitbox.max};
+    ratio /= ui::multipoint_ratio;
 
     std::vector<Entity::Hitbox> ret;
-    ret.reserve(multipoint);
-    for (int i = 1; i <= multipoint; i++) // should we use <= or <
+    ret.reserve(ui::multipoint);
+    for (int i = 1; i <= ui::multipoint; i++) // should we use <= or <
         ret.emplace_back(ratio * i);
     return ret;
 }
 
-static std::vector<math::Vec3> GetMultiPoints(const Entity::Hitbox& hitbox) {
+static std::vector<geo::Vec3> GetMultiPoints(const Entity::Hitbox& hitbox) {
     std::vector<Entity::Hitbox> boxes = GetMultiBoxes(hitbox);
 
-    std::vector<math::Vec3> ret;
+    std::vector<geo::Vec3> ret;
     ret.reserve(boxes.size() * 8);
     for (const auto& i : boxes) // should we use <= or <
         for (auto ii : i.GetPoints())
@@ -72,49 +73,49 @@ static std::vector<math::Vec3> GetMultiPoints(const Entity::Hitbox& hitbox) {
     return ret;
 }
 
-static std::vector<math::Vec3> GetVisibleMultipoints(LocalPlayer* local_ent,
-        Entity* entity, const math::Vec3& start_pos,
+static std::vector<geo::Vec3> GetVisibleMultipoints(LocalPlayer* local_ent,
+        Entity* entity, const geo::Vec3& start_pos,
         const Entity::Hitbox& hitbox) {
-    std::vector<math::Vec3> points = GetMultiPoints(hitbox);
+    std::vector<geo::Vec3> points = GetMultiPoints(hitbox);
 
-    std::vector<math::Vec3> visible;
+    std::vector<geo::Vec3> visible;
     visible.reserve(points.size() + 1);
-    math::Vec3 center = hitbox.GetCenter();
-    if (trace::Entity(entity, start_pos, center, local_ent))
+    Entity::Bone center = hitbox.GetCenter();
+    if (trace::Entity(entity, {start_pos, center}, local_ent))
         visible.emplace_back(center);
 
-    for (const math::Vec3& i : points)
-        if (trace::Entity(entity, start_pos, i, local_ent))
+    for (const geo::Vec3& i : points)
+        if (trace::Entity(entity, {start_pos, i}, local_ent))
             visible.emplace_back(i);
     return visible;
 }
 
-static std::vector<math::Vec3> GetVisibleMultipoints(LocalPlayer* local_ent,
-        Entity* entity, const math::Vec3& start_pos, Entity::BonePos pos) {
+static std::vector<geo::Vec3> GetVisibleMultipoints(LocalPlayer* local_ent,
+        Entity* entity, const geo::Vec3& start_pos, Entity::BonePos pos) {
     std::optional<Entity::Hitbox> hitbox;
     if ((hitbox = entity->GetHitbox(pos)))
         return GetVisibleMultipoints(local_ent, entity, start_pos, *hitbox);
     return {};
 }
 
-static std::optional<math::Vec3> GetVisible(LocalPlayer* local_ent,
-        Entity* entity, const math::Vec3& start_pos, const Entity::Hitbox& hitbox) {
-    if (multipoint) {
-        std::vector<math::Vec3> points = GetVisibleMultipoints(
+static std::optional<geo::Vec3> GetVisible(LocalPlayer* local_ent,
+        Entity* entity, const geo::Vec3& start_pos, const Entity::Hitbox& hitbox) {
+    if (ui::multipoint) {
+        std::vector<geo::Vec3> points = GetVisibleMultipoints(
                 local_ent, entity, start_pos, hitbox);
         if (!points.empty())
             return points[0];
     } else {
-        math::Vec3 center = hitbox.GetCenter();
-        if (trace::Entity(entity, start_pos, center, local_ent))
+        geo::Vec3 center = hitbox.GetCenter();
+        if (trace::Entity(entity, {start_pos, center}, local_ent))
             return center;
     }
 
     return std::nullopt;
 }
 
-static std::optional<math::Vec3> GetVisible(LocalPlayer* local_ent,
-        Entity* entity, const math::Vec3& start_pos, Entity::BonePos pos) {
+static std::optional<geo::Vec3> GetVisible(LocalPlayer* local_ent,
+        Entity* entity, const geo::Vec3& start_pos, Entity::BonePos pos) {
     std::optional<Entity::Hitbox> hitbox;
     if ((hitbox = entity->GetHitbox(pos)))
         return GetVisible(local_ent, entity, start_pos, *hitbox);
@@ -122,29 +123,29 @@ static std::optional<math::Vec3> GetVisible(LocalPlayer* local_ent,
 }
 
 // A function to find a place to aim for on the target
-static std::optional<math::Vec3> RetrieveAimpoint(LocalPlayer* local_ent,
-        Entity* entity, const math::Vec3& camera_pos,
-        const math::Angle& camera_ang) {
+static std::optional<geo::Vec3> RetrieveAimpoint(LocalPlayer* local_ent,
+        Entity* entity, const geo::Vec3& camera_pos,
+        const geo::Angle2& camera_ang) {
 
     // Get our best bone
-    switch (stng::hitbox_mode) {
+    switch (ui::hitbox_mode) {
         case 0: {  // AUTO
             return module::GetAutoHitbox(entity);
         }
         case 1: {  // AUTO-HEAD
             // Head is first bone, should be fine to iterate through them
-            std::optional<math::Vec3> bone;
+            std::optional<geo::Vec3> bone;
             for (int i = 0; i < Entity::BonePos::kCount; i++)
                 if ((bone = GetVisible(local_ent, entity, camera_pos, Entity::BonePos(i))))
                     return bone;
             break;
         }
         case 2: {  // AUTO-CLOSEST
-            math::Vec3 closest;
+            geo::Vec3 closest;
             float closest_fov = 361;
-            if (!multipoint) {
+            if (!ui::multipoint) {
                 for (int i = 0; i < Entity::BonePos::kCount; i++) {
-                    std::optional<math::Vec3> bone;
+                    std::optional<geo::Vec3> bone;
                     if ((bone = GetVisible(local_ent, entity, camera_pos, Entity::BonePos(i))))
                         continue;
 
@@ -156,7 +157,7 @@ static std::optional<math::Vec3> RetrieveAimpoint(LocalPlayer* local_ent,
                 }
             } else {
                 for (int i = 0; i < Entity::BonePos::kCount; i++) {
-                    for (const math::Vec3& ii: GetVisibleMultipoints(local_ent,
+                    for (const geo::Vec3& ii: GetVisibleMultipoints(local_ent,
                             entity, camera_pos, Entity::BonePos(i))) {
                         float fov = camera_ang.GetFov(camera_pos, ii);
                         if (fov > closest_fov) continue;
@@ -171,7 +172,7 @@ static std::optional<math::Vec3> RetrieveAimpoint(LocalPlayer* local_ent,
             break;
         }
         case 3: {  // HEAD
-            std::optional<math::Vec3> head;
+            std::optional<geo::Vec3> head;
             if ((head = GetVisible(local_ent, entity, camera_pos, Entity::BonePos::kHead)))
                 return head;
             break;
@@ -180,71 +181,71 @@ static std::optional<math::Vec3> RetrieveAimpoint(LocalPlayer* local_ent,
 
     // TODO: multi-point this? add ui option?
     if (std::optional<Entity::Hitbox> coll = entity->GetCollision()) {
-        math::Vec3 center = coll.value().GetCenter();
-        if (trace::Entity(entity, camera_pos, center, local_ent))
+        geo::Vec3 center = coll.value().GetCenter();
+        if (trace::Entity(entity, {camera_pos, center}, local_ent))
             return center;
-    } else if (std::optional<math::Vec3> origin = entity->GetOrigin())
-        if (trace::Entity(entity, camera_pos, *origin, local_ent))
+    } else if (std::optional<geo::Vec3> origin = entity->GetOrigin())
+        if (trace::Entity(entity, {camera_pos, *origin}, local_ent))
             return origin;
 
     return std::nullopt;
 }
 
 static Entity* last_target = nullptr;
-static std::pair<Entity*, math::Vec3> RetrieveBestTarget(LocalPlayer* local_ent,
-            const math::Vec3& camera_pos, const math::Angle& camera_ang) {
+static std::pair<Entity*, geo::Vec3> RetrieveBestTarget(LocalPlayer* local_ent,
+            const geo::Vec3& camera_pos, const geo::Angle2& camera_ang) {
 
-    auto IsTargetable = [&](Entity* entity) -> std::optional<math::Vec3> {
-
-        if (!entity || entity->IsDormant()) return std::nullopt;
-        if (local_ent == entity) return std::nullopt;
+    auto IsTargetable = [&](Entity* entity) -> std::optional<geo::Vec3> {
+        
+        // TODO: Reformat so that each is more like a checklist, is this false, continue kinda thing
+        if (!entity || entity->IsDormant() || local_ent == entity) 
+            return std::nullopt;
 
         Entity::Type type = entity->GetType();
-        if (type != Entity::Type::kPlayer && type != Entity::Type::kOtherHostile) return std::nullopt;
-        if (!entity->IsAlive()) return std::nullopt;
+        if ((type != Entity::Type::kPlayer && type != Entity::Type::kOtherHostile) 
+            || !entity->IsAlive())
+            return std::nullopt;
 
         bool team = entity->IsEnemy();
-        if (stng::teammates != 2 && ((stng::teammates == 0) ? !team : team)) return std::nullopt;
-        if (!module::TargetSelection(entity)) return std::nullopt;
-
-        std::optional<math::Vec3> aimpoint;
-        if (!(aimpoint = RetrieveAimpoint(local_ent, entity, camera_pos, camera_ang)))
+        if ((ui::teammates != 2 && ((ui::teammates == 0) ? !team : team)) 
+            || entity->GetDistance(local_ent) > ui::max_distance
+            || !module::TargetSelection(entity))
             return std::nullopt;
 
-        if (stng::fov && camera_ang.GetFov(camera_pos, *aimpoint) > stng::fov)
-            return std::nullopt;
-
-        if (trace::Entity(entity, camera_pos, *aimpoint, local_ent))
+        std::optional<geo::Vec3> aimpoint;
+        if (!(aimpoint = RetrieveAimpoint(local_ent, entity, camera_pos, camera_ang)) 
+            || (ui::fov && camera_ang.GetFov(camera_pos, *aimpoint) > ui::fov) 
+            || (trace::Entity(entity, {camera_pos, *aimpoint}, local_ent)))
             return aimpoint;
         return std::nullopt;
     };
 
-    if (stng::target_lock && last_target) {
-        std::optional<math::Vec3> aimpoint = IsTargetable(last_target);
+    if (ui::target_lock && last_target) {
+        std::optional<geo::Vec3> aimpoint = IsTargetable(last_target);
         if (aimpoint)
             return {last_target, *aimpoint};
     }
 
     // Book keepers for highest target
-    std::pair<Entity*, math::Vec3> highest_ent = {nullptr, {}};
+    std::pair<Entity*, geo::Vec3> highest_ent = {nullptr, {}};
     float highest_score = 0;
 
     int ent_count = Entity::GetCount();
     for (int i = 0; i < ent_count; i++) {
         Entity* entity = Entity::Get(i);
-        std::optional<math::Vec3> aimpoint = IsTargetable(entity);
+        std::optional<geo::Vec3> aimpoint = IsTargetable(entity);
         if (!aimpoint) continue;
 
         // Get score based on priority mode
         float score = 0;
-        switch (stng::priority_mode) {
+        switch (ui::priority_mode) {
             case 0:  // SMART Priority
                      // score = 0; break; // TODO
             case 1:  // Fov Priority
                 score = 180.0f - camera_ang.GetFov(camera_pos, *aimpoint);
                 break;
             case 2:  // Distance priority
-                score = 4096.0f - entity->GetDistance();
+                score = 4096.0f - entity->GetDistance(local_ent);
                 break;
             case 3:  // Health Priority
                 score = 1024.0f - entity->GetHealth();
@@ -271,28 +272,28 @@ class Snapback {
         kTimeout // Aimed for long enough, snapped back and waiting.
     };
     static inline State state;
-    static inline math::Angle delta;
+    static inline geo::Angle2 delta;
     static inline Timer<> time;
-    static void GetDelta(const math::Angle& cur_ang, const math::Angle& wanted_ang) {
+    static void GetDelta(const geo::Angle2& cur_ang, const geo::Angle2& wanted_ang) {
         assert(state != State::kAiming);
         delta = cur_ang - wanted_ang;
     }
     static void ReturnDelta(LocalPlayer* local_ent,
-            const math::Angle& camera_ang) {
+            const geo::Angle2& camera_ang) {
         assert(state == State::kAiming);
-        math::Angle old_angle = local_ent->GetCameraAngle() + delta;
+        geo::Angle2 old_angle = local_ent->GetCameraAngle() + delta;
         local_ent->SetCameraAngle(old_angle.Clamp());
     }
 public:
-    static void Reset(LocalPlayer* local_ent, const math::Angle& camera_ang) {
+    static void Reset(LocalPlayer* local_ent, const geo::Angle2& camera_ang) {
         if (state == State::kAiming)
             ReturnDelta(local_ent, camera_ang);
         state = State::kIdle;
     }
-    static bool Timeout(LocalPlayer* local_ent, const math::Angle& camera_ang) {
+    static bool Timeout(LocalPlayer* local_ent, const geo::Angle2& camera_ang) {
         switch (state) {
         case State::kAiming:
-            if (time.ResetCheck(std::chrono::milliseconds(stng::silent_snaptime))) {
+            if (time.ResetCheck(std::chrono::milliseconds(ui::silent_snaptime))) {
                 ReturnDelta(local_ent, camera_ang);
                 state = State::kIdle;
             }
@@ -305,8 +306,8 @@ public:
             return false;
         }
     }
-    static void SetupSnap(LocalPlayer* local_ent, const math::Angle& camera_ang,
-            const math::Angle& aim_ang) {
+    static void SetupSnap(LocalPlayer* local_ent, const geo::Angle2& camera_ang,
+            const geo::Angle2& aim_ang) {
         if (state == State::kIdle) {
             GetDelta(camera_ang, aim_ang);
             time.Reset();
@@ -326,18 +327,18 @@ void WorldTick() {
     };
     #define ClearRet() ({PreRet1(); return;})
 
-    if (!stng::enabled)
+    if (!ui::enabled)
         ClearRet();
 
     LocalPlayer* local_ent = Entity::GetLocalPlayer();
     if (!local_ent || local_ent->IsDormant() || !local_ent->IsAlive())
         ClearRet();
     
-    const math::Vec3 camera_pos = local_ent->GetCameraPosition();
-    const math::Angle camera_ang = local_ent->GetCameraAngle();
+    const geo::Vec3 camera_pos = local_ent->GetCameraPosition();
+    const geo::Angle2 camera_ang = local_ent->GetCameraAngle();
     
     auto PreRet2 = [&]() {
-        if (stng::silent_aim == 1) // Redundant?
+        if (ui::silent_aim == 1) // Redundant?
             Snapback::Reset(local_ent, camera_ang);
         last_target = nullptr;
     };
@@ -354,28 +355,28 @@ void WorldTick() {
         ClearRet();
 
     #undef ClearRet
-    if (stng::silent_aim == 1 && Snapback::Timeout(local_ent, camera_ang))
+    if (ui::silent_aim == 1 && Snapback::Timeout(local_ent, camera_ang))
         return;
 
     last_target = target;
 
     // Do smoothaim
-    if (stng::smooth_aim > 0) {
+    if (ui::smooth_aim > 0) {
         // TODO, Smooth is only somewhat fixed, it still needs a change to fix
         // the crossing of the y axis (-180, 180)
 
-        math::Angle angles = math::Angle::PointTo(camera_pos, aimpoint);
-        math::Angle delta = camera_ang.GetDelta(angles);
+        geo::Angle2 angles = geo::Angle2::PointTo(camera_pos, aimpoint);
+        geo::Angle2 delta = camera_ang.GetDelta(angles);
 
         // Pitch, If our camera pitch is more than our target pitch, we should
         // add to lower that value, and vise versa for camera being lower
-        float p_move_ammt = delta.x / pow(stng::smooth_aim, 1.5);
+        float p_move_ammt = delta.x / pow(ui::smooth_aim, 1.5);
         angles.x = (camera_ang.x > angles.x) ? (camera_ang.x - p_move_ammt)
                                              : (camera_ang.x + p_move_ammt);
 
         // Yaw, same as above but If we go across -180 to 180, we do some
         // changes
-        float y_move_ammt = delta.y / pow(stng::smooth_aim, 1.5);
+        float y_move_ammt = delta.y / pow(ui::smooth_aim, 1.5);
         angles.y =
             (camera_ang.y > angles.y || (camera_ang.y < -90 && angles.y > 90))
                 ? (camera_ang.y - y_move_ammt)
@@ -387,21 +388,21 @@ void WorldTick() {
         // Slowaim Autoshoot, basicly we recreate an extremly simple triggerbot
         // here
         // FIXME
-        if (stng::autoshoot) {
+        if (ui::autoshoot) {
             // The further the terget gets from us, we want to make the allowed
             // fov lower
             if (camera_ang.GetFov(camera_pos, aimpoint) -
-                    math::Distance(camera_pos, aimpoint) / 32 < 5)
+                    geo::Distance(camera_pos, aimpoint) / 32 < 5)
                 local_ent->Attack();
         }
     } else {
         // Autoshoot
-        if (stng::autoshoot) local_ent->Attack();
+        if (ui::autoshoot) local_ent->Attack();
         // Check weapon time, we only want to aim when the weapon can shoot
         if (!module::CanShoot(local_ent)) return;
         // Get angles and Aim at player
-        math::Angle aim_angles = math::Angle::PointTo(camera_pos, aimpoint);
-        switch (stng::silent_aim) {
+        geo::Angle2 aim_angles = geo::Angle2::PointTo(camera_pos, aimpoint);
+        switch (ui::silent_aim) {
             case 0:  // OFF
                 local_ent->SetCameraAngle(aim_angles);
                 break;

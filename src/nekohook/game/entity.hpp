@@ -20,7 +20,7 @@
 #pragma once
 
 #include "util/geometry.hpp"
-#include "ui/gfx/gfx.hpp"
+#include "gfx/color.hpp"
 
 namespace nekohook {
 
@@ -88,16 +88,17 @@ class Entity {
     std::optional<Bone> GetBone(BonePos) const;
     std::optional<Hitbox> GetHitbox(BonePos) const;
     geo::Vec3 GetCameraPosition() const; // FIXME: Optionals???
-    geo::Angle GetCameraAngle() const;
+    geo::Angle<2> GetCameraAngle() const;
     bool IsAirborne() const;
     float DistanceFromGround() const;
 
     // Util functions
     float GetDistance() const;
+    float GetDistance(LocalPlayer*) const;
     bool IsEnemy() const;
     std::optional<geo::Vec3> GetLocation() const;
-    gfx::Color GetColor();
-    gfx::Color GetHealthColor();
+    gfx::Color GetColor() const;
+    gfx::Color GetHealthColor() const;
     
     // Playerstate
     enum State { kFriendly = -1, kNone = 0, kRage = 1 };
@@ -123,14 +124,13 @@ class LocalPlayer : public Entity {
    public:
     void Attack();
     void Jump();
-    void WalkTo(const geo::Vec3&);
+    void WalkTo(geo::Vec3);
     bool IsThirdperson();
 
     geo::Vec3 GetCameraPosition();
-    geo::Angle GetCameraAngle();
-    void SetCameraAngle(const geo::Angle&);
-    void SetSilentCameraAngle(
-        const geo::Angle&);  // Silent doesnt move our perspective but moves it
+    geo::Angle<2> GetCameraAngle();
+    void SetCameraAngle(geo::Angle<2>);
+    void SetSilentCameraAngle(geo::Angle<2>);  // Silent doesnt move our perspective but moves it
                               // ingame anyways
 };
 

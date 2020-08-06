@@ -19,26 +19,24 @@
 
 #include <vector>
 
-#include "ui/settings/enum.hpp"
-#include "ui/settings/bool.hpp"
+#include "ui/var.hpp"
 #include "util/chrono.hpp"
 
 #include "spam.hpp"
 
 namespace nekohook::features::spam {
 
-namespace stng {
-using namespace setting;
+namespace ui {
+using namespace nekohook::ui;
 const static TreeMap menu({"Spam"});
 
-static StrEnum type_enum({
+static Var<Enum> type(menu, "Spam", 0, {
     "OFF", "NEKOHOOK", "CATHOOK", "LMAOBOX", "LITHIUM", "NULLCORE", "BLANK", "CUSTOM"
 });
-static Enum type(menu, type_enum, "Spam", 0);
-static Bool random(menu, "Random", true);
-static Path spam_file(menu, "File", "default.txt");
-static Float spam_time(menu, "Speed", 1.2, "Spam Time");
-static Int spam_newline(menu, "Newlines", 0);
+static Var<bool> random(menu, "Random", true);
+//static Path spam_file(menu, "File", "default.txt");
+static Var<float> spam_time(menu, "Speed", 1.2);
+static Var<int> spam_newline(menu, "Newlines", 0);
 }
 
 namespace texts {
@@ -88,7 +86,7 @@ const static StrEnum nullcrap_spam = {
 };
 const static StrEnum blank_spam({"\x0F"});
 static std::vector<std::string> custom_spam;
-
+}
 // This is a cat command so you can forcibly reload it
 /*static Command spam_reload("spam_reload", [](const Command::Args&) {
     custom_spam = io::ReadFile(nfs::GetSaveLocation() / "spam" / (std::string)spam_file);
@@ -120,7 +118,7 @@ static CatCommand spam_remove("spam_remove", [](const Command::Args& args) {
                       args[0].data());
     }
 });*/
-
+/*
 static std::size_t last_string = 0;
 template<class T>
 std::string_view ExtractString(T arr) {
@@ -129,7 +127,7 @@ std::string_view ExtractString(T arr) {
     if (last_string >= arr.size())  // clamp around
         last_string = 0;
 
-    return *(arr.begin() + stng::spam_random ? (rand() % arr.size()) : last_string)
+    return *(arr.begin() + ui::spam_random ? (rand() % arr.size()) : last_string)
 }
 
 static std::string GetSpamString() {
@@ -191,5 +189,5 @@ static void SpamLoop() {
 }
 
 void Init() { events::world.Listen(SpamLoop); }
-
+*/
 }  // namespace features::spam

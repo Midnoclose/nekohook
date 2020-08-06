@@ -21,7 +21,7 @@
 
 namespace nekohook::features::debug {
 
-extern Command debug_ent_dump;
+extern ui::Command debug_ent_dump;
 
 void World();
 void Draw();

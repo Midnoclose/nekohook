@@ -25,13 +25,13 @@
 #include <string_view>
 #include <vector>
 
-namespace nekohook {
+namespace nekohook::ui {
 
 // A define for commands to use in front of their actual command
 class Command {
 public:
     using Args = std::vector<std::string_view>;
-    using CmdFunc = std::function<void(const Args&)>;
+    using CmdFunc = std::function<void(Args)>;
     Command(std::string_view _name, CmdFunc _callback) 
         : name(_name), callback(_callback) {
         Command::list.push_back(this);
@@ -41,7 +41,7 @@ public:
     const std::string_view name;
 
     void Call(std::string_view input);
-    void Call(const Args&);
+    void Call(Args);
 private:
     const CmdFunc callback;
     

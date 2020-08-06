@@ -25,12 +25,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-// Xlib fix
-#ifdef Bool
-#undef Bool
-#endif
-
-#include "ui/settings/bool.hpp"
+#include "ui/var.hpp"
 #include "features/debug.hpp"
 #include "features/esp.hpp"
 #include "features/followbot.hpp"
@@ -38,13 +33,13 @@
 #include "features/walkbot.hpp"
 #include "ui/console.hpp"
 
-#include "draw.hpp"
+#include "gfx.hpp"
 
 namespace nekohook {
-namespace draw { 
+namespace gfx { 
 
-static setting::TreeMap menu({"Visuals", "Ui"});
-static setting::Bool using_oxide(menu, "oxide", true);
+static ui::TreeMap menu({"Visuals", "Ui"});
+static ui::Var<bool> using_oxide(menu, "oxide", true);
 
 static std::string GetProcessName() {
     #ifdef __linux__
@@ -98,7 +93,6 @@ void Init() {
 
     if (err)
         throw std::runtime_error("Unable to init oxide overlay!");
-
 }
 
 // TODO! make it run it
@@ -115,7 +109,7 @@ const Color Color::white = Color::FromRGB(255, 255, 255);
 
 namespace events {
 void Draw() {
-    using namespace draw;
+    using namespace gfx;
     if (using_oxide)
         oxide_begin_frame();
     if (using_oxide)

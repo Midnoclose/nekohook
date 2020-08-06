@@ -40,8 +40,8 @@ public:
     };
     static Color FromWarp(Warp, float speed = 1);
     
-    bool operator ==(const Color& i) const { return *this == i; }
-    Color Interp(const Color& c1, float u);
+    bool operator ==(Color i) const { return *this == i; }
+    Color Interp(Color c1, float u);
 
     static const Color white;
     static const Color black;

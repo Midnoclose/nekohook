@@ -17,16 +17,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <string>
-#include <vector>
+#pragma once
 
-#include <neko/event.hpp>
+#include <filesystem>
+#include <optional>
+#include <string_view>
 
-namespace neko::hook::events {
+namespace nekohook::gfx {
 
-// Functions to be called on draw
-void Draw();
+class Canvas;
+class Font {
+    friend Canvas;
+    using Handle = int;
+    Font() {}
+    std::optional<Handle> handle;
+public:
+    Font(Font&& v) {
+        std::optional<Handle> tmp = std::move(v.handle);
+        v.handle = std::nullopt;
+        this->handle = std::move(tmp);
+    }
+    static Font& GetDefault();
+    static Font FontByName(std::string_view);
+    static Font FontByPath(const std::filesystem::path&);
+private:
+    static Font _default;
+};
 
-void World();
-
-}  // namespace neko::events
+}

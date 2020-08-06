@@ -20,17 +20,20 @@
 #pragma once
 
 #include "game/entity.hpp"
-#include "ui/graphical/draw.hpp"
-#include "ui/settings/var.hpp"  // I would like to use catvars
+#include "gfx/color.hpp"
+#include "ui/var.hpp"  // I would like to use catvars
 
 namespace nekohook::features::esp {
 
-extern setting::TreeMap esp_menu;
+namespace ui {
+using namespace nekohook::ui;
+extern TreeMap esp_menu;
+}
 
 namespace module {
 bool ShouldDrawBox(Entity*);
 bool ShouldEsp(Entity*);
-std::vector<std::pair<const char*, draw::Color>> GetStrings(Entity*);
+//std::vector<std::pair<const char*, draw::Color>> GetStrings(Entity*);
 }  // namespace module
 
 }  // namespace neko::features::esp

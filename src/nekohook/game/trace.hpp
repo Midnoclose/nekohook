@@ -25,38 +25,16 @@
 
 namespace nekohook::trace {
 
-using EndInfo = std::pair<Entity*, math::Vec3>;
 
-// Trace line, returns end of trace
-math::Vec3 Terrain(const math::Vec3& start, const math::Vec3& end);
+geo::Vec3 Terrain(const geo::Segment3&);
 
-// Trace a line, returns entity hit or end of trace
-EndInfo Shot(const math::Vec3& start, const math::Vec3& end, Entity* ignore = Entity::GetLocalPlayer());
-
-// In front of src + angles
-inline EndInfo Front(const math::Vec3& src, const math::Angle& direction, Entity* ignore = Entity::GetLocalPlayer()) {
-    return Shot(src, math::DirectionalMove(src, direction, 8192.0f), ignore);
-}
-
-// Whats in front of entity
-inline EndInfo Front(Entity* entity) {
-    return Front(entity->GetCameraPosition(), entity->GetCameraAngle());
-}
-
-// Front of player
-inline EndInfo Front(LocalPlayer* local_ent) {
-    return Front(local_ent->GetCameraPosition(), local_ent->GetCameraAngle(), local_ent);
-}
-inline EndInfo Front() {
-    LocalPlayer* local_ent = Entity::GetLocalPlayer();
-    return local_ent ? Front(local_ent) : EndInfo();
-}
+using EndInfo = std::pair<Entity*, geo::Vec3>;
+EndInfo Shot(const geo::Segment3&, Entity* ignore = Entity::GetLocalPlayer());
 
 // Check if line hits entity, this is for convienience
-inline bool Entity(Entity* entity, const math::Vec3& src, const math::Vec3& dest,
-                   Entity* ignore = Entity::GetLocalPlayer()) {
+bool Entity(Entity* entity, const geo::Segment3& v, Entity* ignore = Entity::GetLocalPlayer()) {
     assert(entity != ignore);
-    return Shot(src, dest, ignore).first == entity;
+    return Shot(v, ignore).first == entity;
 }
 
 }  // namespace neko::trace

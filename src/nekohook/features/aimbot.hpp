@@ -18,26 +18,25 @@
  */
 
 #include "game/entity.hpp"  // Contains entity and bone info
-#include "ui/settings/math.hpp"
+#include "ui/var.hpp"
 
 namespace nekohook::features::aimbot {
+namespace ui {
+using namespace nekohook::ui;
+
+extern Var<Enum> aimbot_menu;
+extern Var<int> multipoint;
+extern Var<float> multipoint_ratio;
+} // namespace ui
 
 void WorldTick();
-
-extern setting::StrEnum aimbot_menu;
 extern Entity* highlight_target;
-
-// Debug
-extern setting::Int multipoint;
-extern setting::Float multipoint_ratio;
 
 // Module related
 namespace module {
 
-math::Vec3 GetAutoHitbox(Entity*);
-
+geo::Vec3 GetAutoHitbox(Entity*);
 bool TargetSelection(Entity*);
-
 bool ShouldAim(Entity*);
 bool CanShoot(Entity*);
 

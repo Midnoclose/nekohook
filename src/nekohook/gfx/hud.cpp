@@ -1,5 +1,5 @@
 
-#include "gui/hud.hpp"
+/*#include "gfx/hud.hpp"
 
 namespace neko::hook::hud {
 
@@ -15,4 +15,4 @@ void Draw(std::string_view str) {
     //length += draw::GetLength(str).y + 2;
 }
 
-}
+}*/

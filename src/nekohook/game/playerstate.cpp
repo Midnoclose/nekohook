@@ -22,10 +22,10 @@
 #include "ui/console.hpp"
 #include "entity.hpp"
 
-#include "playerstate.hpp"
+//#include "playerstate.hpp"
 
 namespace nekohook::playerstate {
-
+/*
 // Playerstates for steamid and name respectivly
 static std::unordered_map<uint64_t, State> steam_states;
 static std::unordered_map<std::string, State> name_states;
@@ -71,5 +71,5 @@ bool IsFriendly(Entity* entity) {
     return Get(entity) < 0;
 }
 
-
+*/
 }

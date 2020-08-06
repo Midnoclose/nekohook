@@ -19,9 +19,18 @@
 
 #pragma once
 
-#include <varient>
-namespace nekohook {
+#include <util/geometry.hpp>
 
+namespace nekohook::gfx {
 
+using Point = geo::IVec2;
+
+using WTS = std::tuple<bool, Point>;
+WTS FromWorld(const geo::Vec3&); 
+
+using Segment = geo::Segment<Point>;
+using Ray = geo::Ray<Point, geo::Angle<1>>;
+using Box = geo::Box<Point>;
+using Circle = geo::Sphereoid<Point, float>;
 
 }

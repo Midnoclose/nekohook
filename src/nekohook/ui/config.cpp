@@ -21,15 +21,14 @@
 
 #include "ui/command.hpp"
 #include "ui/console.hpp"
-#include "ui/settings/var.hpp"
+#include "ui/var.hpp"
 #include "util/filesystem.hpp"
 
-namespace nekohook::configs {
+namespace nekohook::ui::cfg {
 
 static fs::path save_location = GetSaveLocation() / "cfg";
 
 void Load(const fs::path& cfg_path) {
-    // Call all of the lines as commands
     std::ifstream file(save_location / cfg_path);
     while (file) {
         std::string buf;
@@ -42,7 +41,7 @@ void Load(std::string_view cfg_name) { Load(fs::path(std::string(cfg_name))); }
 void Save(const fs::path& cfg_path) {
     
     std::fstream file(save_location / cfg_path);
-    for (const auto& catvar : setting::Var::GetList()) {
+    for (const auto& catvar : BaseVar::GetList()) {
         file << catvar->command_name;
         std::string value = catvar->GetString();
         if (value.find(' ') != std::string::npos)
@@ -60,7 +59,7 @@ std::vector<std::string> ListConfigs() {
     return ret;
 }
 
-static Command LoadConfig("load", [](const Command::Args& args) {
+static Command LoadConfig("load", [](Command::Args args) {
     if (args.empty()) {
         console::log << "Missing input argument" << std::endl;
         return;
@@ -73,7 +72,7 @@ static Command LoadConfig("load", [](const Command::Args& args) {
     }
 });
 
-static Command SaveConfig("save", [](const Command::Args& args) {
+static Command SaveConfig("save", [](Command::Args args) {
     if (args.empty()) {
         console::log << "Missing input argument" << std::endl;
         return;
@@ -88,7 +87,7 @@ static Command SaveConfig("save", [](const Command::Args& args) {
     }
 });
 
-static Command ListConfig("list_configs", [](const Command::Args& args) {
+static Command ListConfig("list_configs", [](Command::Args args) {
     console::log << "List of configs:";
     for (auto i : ListConfigs())
         console::log << "\n\t" << i;

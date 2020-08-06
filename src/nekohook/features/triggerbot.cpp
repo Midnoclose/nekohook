@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+/*
 #include "game/trace.hpp"
 #include "ui/settings/bool.hpp"
 #include "ui/settings/enum.hpp"
@@ -28,7 +28,7 @@
 
 namespace nekohook::features::trigger {
 
-/*namespace stng {
+namespace stng {
 using namespace setting;
 static TreeMap menu({"TriggerBot"});
 
@@ -109,5 +109,5 @@ static void WorldTick() {
     Attack(local_ent);
 }
 
-*/
 }  // namespace features::trigger
+*/

@@ -19,34 +19,30 @@
 
 #include <random>
 
-#include "ui/settings/bool.hpp"
-#include "ui/settings/enum.hpp"
-#include "ui/settings/math.hpp"
+#include "ui/var.hpp"
 #include "game/trace.hpp"
 
 #include "features/antiaim.hpp"
 
 namespace nekohook::features::antiaim {
 
-namespace stng {    
-using namespace setting;
+namespace ui {    
+using namespace nekohook::ui;
 static TreeMap menu({"Anti-Aim"});
 
-static Bool enabled(menu, "Enable", false);
-static StrEnum aa_pitch_e({
+static Var<bool> enabled(menu, "Enable", false);
+static Var<Enum> aa_pitch(menu, "Pitch", 0, {
     "OFF", "FIXED", "UP", "DOWN", "FAKEUP", "FAKEDOWN", 
     "FAKECENTER", "RANDOM", "BIGRANDOM", "FLIP", "FAKEFLIP"
 });
-static Enum aa_pitch(menu, aa_pitch_e, "Pitch", 0);
-static StrEnum aa_yaw_e({
+static Var<Enum> aa_yaw(menu, "Yaw", 0, {
     "OFF", "FIXED", "FIXEDOFFSET", "RANDOM",
     "BIGRANDOM", "FLIP", "SPIN", "EDGE"
 });
-static Enum aa_yaw(menu, aa_yaw_e, "Yaw", 0);
-static Float aa_pitch_amt(menu, "Fixed Pitch", 0);
-static Float aa_yaw_amt(menu, "Fixed Yaw", 0);
-static Float aa_spin_amt(menu, "Spin Speed", 2.5f);
-static Bool allow_unclamped(menu, "Unclamp", false);
+static Var<float> aa_pitch_amt(menu, "Fixed Pitch", 0);
+static Var<float> aa_yaw_amt(menu, "Fixed Yaw", 0);
+static Var<float> aa_spin_amt(menu, "Spin Speed", 2.5f);
+static Var<bool> allow_unclamped(menu, "Unclamp", false);
 }
 // TODO, antiaims are game specific, the ones we have here wont cut it
 
@@ -59,30 +55,29 @@ static float RandFloatRange(float min, float max) {
 enum class Edge { kNone, kLeft, kRight };
 Edge GetEdge(LocalPlayer* local_ent) {
     
-    math::Angle camera_ang = local_ent->GetCameraAngle();
-    math::Vec3 camera_pos = local_ent->GetCameraPosition();
+    geo::Angle2 camera_ang = local_ent->GetCameraAngle();
+    geo::Vec3 camera_pos = local_ent->GetCameraPosition();
 
     // Get some angles facing different directions
-    math::Angle look_left(0.0f, camera_ang.y + 90); look_left.Clamp();
-    math::Angle look_right(0.0f, camera_ang.y - 90); look_right.Clamp();
+    geo::Angle2 look_left(0.0f, camera_ang.y + 90); look_left.Clamp();
+    geo::Angle2 look_right(0.0f, camera_ang.y - 90); look_right.Clamp();
 
     // First we go out to the left and right
-    math::Vec3 left = trace::Terrain(camera_pos, math::DirectionalMove(camera_pos, look_left, 128.0f));
-    math::Vec3 right = trace::Terrain(camera_pos, math::DirectionalMove(camera_pos, look_right, 128.0f));
+    geo::Vec3 left = trace::Terrain({camera_pos, geo::Ray3(camera_pos, look_left).Cast(128.0f)});
+    geo::Vec3 right = trace::Terrain({camera_pos, geo::Ray3(camera_pos, look_right).Cast(128.0f)});
 
     // Check if we hit a wall, if we have, return closer
-    float distto_left = math::Distance(camera_pos, left);
-    float distto_right = math::Distance(camera_pos, right);
+    float distto_left = geo::Distance(camera_pos, left);
+    float distto_right = geo::Distance(camera_pos, right);
     if (std::abs(distto_left - distto_right) > 2)
         return (distto_left > distto_right) ? Edge::kRight
                                             : Edge::kLeft;
 
     // Now we go forward and check if we hit something there
-    distto_left = math::Distance(camera_pos, trace::Terrain(camera_pos, math::DirectionalMove(left, math::Angle(0.0f, camera_ang.y), 256.0f)));
-    distto_right = math::Distance(camera_pos, trace::Terrain(camera_pos, math::DirectionalMove(right, math::Angle(0, camera_ang.y), 256.0f)));
+    distto_left = geo::Distance(camera_pos, trace::Terrain({camera_pos, geo::Ray3(left, geo::Angle2(0.0f, camera_ang.y)).Cast(256.0f)}));
+    distto_right = geo::Distance(camera_pos, trace::Terrain({camera_pos, geo::Ray3(right, geo::Angle2(0, camera_ang.y)).Cast(256.0f)}));
     if (std::abs(distto_left - distto_right) > 4)
         return (distto_left > distto_right) ? Edge::kRight : Edge::kLeft;
-    // If we havent hit anything, then we return none
     return Edge::kNone;
 }
 
@@ -90,7 +85,7 @@ unsigned int AASafeTicks = 0;
 
 void WorldTick() {
 
-    if (!stng::enabled) return;
+    if (!ui::enabled) return;
 
     if (AASafeTicks) {
         AASafeTicks--;
@@ -100,15 +95,15 @@ void WorldTick() {
     // Get our local ents angles
     LocalPlayer* local_ent = Entity::GetLocalPlayer();
     if (!local_ent || local_ent->IsDormant() || !local_ent->IsAlive()) return;
-    math::Angle angles = local_ent->GetCameraAngle();
+    geo::Angle2 angles = local_ent->GetCameraAngle();
 
     // Check if can aa
     if (!module::ShouldAA()) return;
 
     // Pitch
-    switch (stng::aa_pitch) {
+    switch (ui::aa_pitch) {
         case 1:  // FIXED
-            angles.x = stng::aa_pitch_amt;
+            angles.x = ui::aa_pitch_amt;
             break;
         case 2:  // UP
             angles.x = -89.0f;
@@ -146,12 +141,12 @@ void WorldTick() {
     }
 
     // Yaw
-    switch (stng::aa_yaw) {
+    switch (ui::aa_yaw) {
         case 1:  // FIXED
-            angles.y = stng::aa_yaw_amt;
+            angles.y = ui::aa_yaw_amt;
             break;
         case 2:  // FIXEDOFFSET
-            angles.y += stng::aa_yaw_amt;
+            angles.y += ui::aa_yaw_amt;
             break;
         case 3:  // RANDOM
             angles.y = RandFloatRange(-180.0f, 180.0f);
@@ -166,7 +161,7 @@ void WorldTick() {
             break;
         case 6:  // SPIN
             static float cur_yaw;
-            cur_yaw += stng::aa_spin_amt;
+            cur_yaw += ui::aa_spin_amt;
             while (cur_yaw > 180)  // Clamping :joy:
                 cur_yaw -= 360;
             while (cur_yaw < -180) cur_yaw += 360;
@@ -199,7 +194,7 @@ void WorldTick() {
     }
 
     // Clamp Finished angles
-    if (!stng::allow_unclamped) angles.Clamp();
+    if (!ui::allow_unclamped) angles.Clamp();
 
     // Send it off to the races
     local_ent->SetSilentCameraAngle(angles);

@@ -19,40 +19,39 @@
 
 #include <cstdlib>  // rand()
 
-#include "math.hpp"
+#include "geometry.hpp"
 
 // Math utilities
 
-namespace nekohook::math {
+namespace nekohook::geo {
 
-Angle& Angle::Clamp() {
+Angle2& Angle2::Clamp() {
     
-    while (this->x > 89) this->x -= 180;
-    while (this->x < -89) this->x += 180;
+    while (this->x > 89.0f) this->x -= 180.0f;
+    while (this->x < -89.0f) this->x += 180.0f;
    
-    while (this->y > 180) this->y -= 360;
-    while (this->y < -180) this->y += 360;
+    while (this->y > 180.0f) this->y -= 360.0f;
+    while (this->y < -180.0f) this->y += 360.0f;
 
     return *this;
 }
 
 // Returns angles to a point in space
-Angle Angle::PointTo(const Vec3& src_point, const Vec3& dest_point) {
+AngleBase<2> AngleBase<2>::PointTo(const Vec3& src_point, const Vec3& dest_point) {
     Vec3 aim_point = dest_point - src_point;
-    // Get angles
-    Angle out;
-    out.y = atan2(aim_point.y, aim_point.x) * 180 / F_PI;
-    out.x = atan2(-aim_point.z, sqrt(aim_point.x * aim_point.x + aim_point.y * aim_point.y)) * 180 / F_PI;
+    
+    Angle2 out;
+    out.y = atan2(aim_point.y, aim_point.x) * 180.0f / F_PI;
+    out.x = atan2(0, sqrt(aim_point.x * aim_point.x + aim_point.y * aim_point.y)) * 180.0f / F_PI;
 
-    // Clamp and return
     return out.Clamp();
 }
 
 // A function to get the difference from angles, Please make sure inputs are
 // clamped
-Angle Angle::GetDelta(const Angle& dest_angles) const {
+AngleBase<2> AngleBase<2>::GetDelta(const AngleBase<2>& dest_angles) const {
     // Our output difference
-    Angle diff;
+    Angle2 diff;
 
     // Yaw
     if (this->y != dest_angles.y) {
@@ -70,16 +69,15 @@ Angle Angle::GetDelta(const Angle& dest_angles) const {
     return diff;
 }
 // Use input angles and our eye position to get fov to a destination point
-float Angle::GetFov(const Vec3& src, const Vec3& dest) {    
+float AngleBase<2>::GetFov(const Vec3& src, const Vec3& dest) const {    
     return this->GetFov(PointTo(src, dest));
 }
-float Angle::GetFov(const Angle& pointed_angle) {
-    Angle delta = this->GetDelta(pointed_angle);
+float AngleBase<2>::GetFov(const AngleBase<2>& pointed_angle) const {
+    Angle2 delta = this->GetDelta(pointed_angle);
     return std::max<float>(delta.x, delta.y);
 }
 
-
-Vec3 DirectionalMove(const Vec3& src, const Angle& dir, float amt) {
+Vec3 DirectionalMove(const Vec3& src, const AngleBase<2>& dir, float amt) {
     // Math I dont understand
     float sp = sinf(dir.x * F_PI / 180.f);
     float cp = cosf(dir.x * F_PI / 180.f);

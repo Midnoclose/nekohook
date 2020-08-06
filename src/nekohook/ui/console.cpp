@@ -1,11 +1,11 @@
 
 #include <algorithm>
 
-#include "settings/var.hpp"
+#include "var.hpp"
 
 #include "console.hpp"
 
-namespace neko::hook::console {
+namespace nekohook::ui::console {
     
 void Exec(std::string_view input) {
     Command::Args args = Command::ProcessLine(input);
@@ -14,15 +14,14 @@ void Exec(std::string_view input) {
 }
 
 void Exec(std::string_view name, Command::Args args) {
+    // TODO: Fix command prefix.
     {
-        const auto& u_list = settings::Var::GetList();
+        const auto& u_list = BaseVar::GetList();
         auto find = std::find_if(u_list.begin(), u_list.end(), [&](auto i) {
             return name == i->command_name;
         });
-        if (find != u_list.end()) {
-            (*find)->Call(args);
-            return;
-        }
+        if (find != u_list.end())
+            return (*find)->Call(std::move(args));
     }
     {
         // Try to find command from command list
@@ -30,10 +29,8 @@ void Exec(std::string_view name, Command::Args args) {
         auto find = std::find_if(c_list.begin(), c_list.end(), [&](auto i) {
             return name == i->name;
         });
-        if (find != c_list.end()) {
-            (*find)->Call(args);
-            return;
-        }
+        if (find != c_list.end())
+            return (*find)->Call(std::move(args));
     }
     console::log << "Cannot find command: " << name << std::endl;
 }

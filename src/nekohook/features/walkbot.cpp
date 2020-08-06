@@ -18,6 +18,7 @@
  */
 
 // c+p from followbot, please prune
+/*
 #include "../framework/drawing.hpp"  // draw some crumbs
 #include "../framework/game.hpp"  // So we can run things in draw and world tick
 #include "../framework/trace.hpp"
@@ -171,3 +172,4 @@ static void WorldTick() {
 void Init() {}
 
 }  // namespace features::walkbot
+*/

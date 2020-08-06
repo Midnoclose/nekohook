@@ -19,7 +19,7 @@
 
 #include "command.hpp"
 
-namespace nekohook {
+namespace nekohook::ui {
 
 // Seperates args like how "argc, args" works
 Command::Args Command::ProcessLine(std::string_view input) {

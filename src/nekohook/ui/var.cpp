@@ -1,11 +1,10 @@
 
-
-#include "ui/graphical/gui.hpp"
+//#include "ui/gfx/gfx.hpp"
 #include "ui/command.hpp"
 
-#include "ui/settings/var.hpp"
+#include "ui/var.hpp"
 
-namespace nekohook::setting {
+namespace nekohook::ui {
 
 static std::string GetCommandName(TreeMap _gui_map, std::string_view name) {
     auto tolower = [](std::string_view in) -> std::string {
@@ -27,9 +26,10 @@ static std::string GetCommandName(TreeMap _gui_map, std::string_view name) {
     return ret;
 }
 
-Var::Var(TreeMap _gui_map, std::string_view name) : command_name(GetCommandName(_gui_map, name)) {
-    Var::list.push_back(this);
-    gui::Register(_gui_map, this);
+BaseVar::BaseVar(Type _type, TreeMap _gui_map, std::string_view name) 
+    : command_name(GetCommandName(_gui_map, name)), type(_type) {
+    BaseVar::list.push_back(this);
+    //gui::Register(_gui_map, this);
 }
 
 }
