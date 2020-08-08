@@ -25,16 +25,15 @@
 
 namespace nekohook::trace {
 
-
 geo::Vec3 Terrain(const geo::Segment3&);
 
 using EndInfo = std::pair<Entity*, geo::Vec3>;
 EndInfo Shot(const geo::Segment3&, Entity* ignore = Entity::GetLocalPlayer());
 
 // Check if line hits entity, this is for convienience
-bool Entity(Entity* entity, const geo::Segment3& v, Entity* ignore = Entity::GetLocalPlayer()) {
+bool Entity(Entity* entity, const geo::Segment3& v, Entity* ignore = Entity::GetLocalPlayer()); /* {
     assert(entity != ignore);
     return Shot(v, ignore).first == entity;
-}
+}*/
 
 }  // namespace neko::trace

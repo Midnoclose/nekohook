@@ -1,15 +1,24 @@
 
 # TODO: add function to test a library for wanted functions and apply conditionals as nessesary
 
-file(GLOB_RECURSE sources "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
-file(GLOB_RECURSE headers "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp")
+set(sources "")
+add_subdirectory(features)
+add_subdirectory(game)
+add_subdirectory(gfx)
+add_subdirectory(ui)
+add_subdirectory(util)
+
+set(suffix "")
+if (NEKOHOOK_X86)
+    set(suffix "32")
+endif(NEKOHOOK_X86)
 
 add_custom_target(nekohook)
-
 macro(ApplyCommon in_target)
     add_dependencies(nekohook ${in_target})
     set_property(TARGET ${in_target} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
     set_property(TARGET ${in_target} PROPERTY CXX_STANDARD 17)
+    set_property(TARGET ${in_target} PROPERTY OUTPUT_NAME nekohook)
 
     target_include_directories(${in_target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/")
     target_include_directories(${in_target} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../")
@@ -17,7 +26,7 @@ macro(ApplyCommon in_target)
         target_link_libraries(${in_target} PUBLIC rt pthread)
     endif ()
 
-    install(TARGETS ${in_target} DESTINATION lib)
+    install(TARGETS ${in_target} DESTINATION lib${suffix})
 endmacro()
 
 if(NEKOHOOK_BUILD_SHARED)
