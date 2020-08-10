@@ -1,7 +1,7 @@
 
 #include <variant>
 
-#include "ui/command.hpp"
+#include "command.hpp"
 
 #pragma once
 

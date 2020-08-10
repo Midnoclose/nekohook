@@ -1,6 +1,6 @@
 
-file(GLOB tmp_sources "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
-file(GLOB headers "${CMAKE_CURRENT_SOURCE_DIR}/*.hpp")
-set(sources ${sources} ${tmp_sources} PARENT_SCOPE)
+file(GLOB sources "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+add_library(nekohook-dummy STATIC ${sources})
+install(TARGETS nekohook-dummy DESTINATION lib)
 install(FILES ${headers} DESTINATION include/nekohook/features)
 

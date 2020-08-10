@@ -19,8 +19,8 @@
 
 #pragma once
 
-#include "util/geometry.hpp"
-#include "gfx/color.hpp"
+#include "../util/geometry.hpp"
+#include "../gfx/color.hpp"
 
 namespace nekohook {
 

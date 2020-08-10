@@ -18,7 +18,7 @@
  */
 
 // TODO, add texture func with texture load with drawline
-#include <cmath>
+/*#include <cmath>
 #include <cstring>  // strlen
 
 #include "util/math.hpp"  // Contains pi defines
@@ -106,4 +106,4 @@ uservar::Enum default_font(gui_menu, {Fonts[0], Fonts[1], Fonts[2]}, "gui_font",
 uservar::Int default_font_size(gui_menu, "gui_font_size", 6, "Gui font size",
                                "The main font size");
 
-}  // namespace draw
+} */ // namespace draw

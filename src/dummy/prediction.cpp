@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <boost/circular_buffer.hpp>
+/*#include <boost/circular_buffer.hpp>
 #include <chrono>
 #include <unordered_map>
 
@@ -53,7 +53,7 @@ static const PredictionCache_s& GetCache(int entity) {
 
 // Cache Cleanup duty
 static void AfterWorldTick() {
-    /*CatEntity* local_ent = GetLocalPlayer();
+    CatEntity* local_ent = GetLocalPlayer();
     int local_ent_idx = 0;
     if (local_ent && !GetDormant(local_ent) && GetAlive(local_ent)) {
         int ent_count = GetEntityCount();
@@ -63,16 +63,16 @@ static void AfterWorldTick() {
                 break;
             }
         }
-    }*/
+    }
 
-    /*for(size_t i = 0; i < origin_cache.size();) {
+    for(size_t i = 0; i < origin_cache.size();) {
       local_ent_idx
       auto ii = origin_cache.begin() + i;
       if (ii->second.tick != time_keeper)
         origin_cache.erase(ii);
       else
         i++;
-    }*/
+    }
     time_keeper = !time_keeper;
 }
 
@@ -173,7 +173,7 @@ void DrawTick() {
         }
     }
     //#endif
-    /*int ent_count = GetEntityCount();
+    int ent_count = GetEntityCount();
     for (int i = 0; i < ent_count; i++) {
       CatEntity* entity = GetEntity(i);
       if (!entity || GetDormant(entity) || !GetAlive(entity) || GetType(entity)
@@ -189,7 +189,7 @@ void DrawTick() {
     cur_pos; return true;
       }), wts1))
           draw::Rect(wts1.first - 4, wts1.second - 4, 8, 8, colors::white);
-    }*/
+    }
 }
 
 void Init() {
@@ -197,4 +197,4 @@ void Init() {
     events::draw.Listen(DrawTick);
 }
 
-}  // namespace pred
+}*/  // namespace pred

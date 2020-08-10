@@ -1,0 +1,5 @@
+set(NEKOHOOK_SRC_DIR "@CMAKE_INSTALL_PREFIX@/src")
+include("@CMAKE_INSTALL_PREFIX@/src/nekohook/CMakeLists.txt")
+include("@CMAKE_INSTALL_PREFIX@/src/psudocrt/CMakeLists.txt")
+#set(NEKOHOOK_SOURCES "${NEKOHOOK_SOURCES}" PARENT_SCOPE)
+include("@CMAKE_INSTALL_PREFIX@/lib/cmake/Nekohook/AddNekohook.cmake")
