@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <util/geometry.hpp>
+#include "nekohook/util/geometry.hpp"
 
 namespace nekohook::gfx {
 

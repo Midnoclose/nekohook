@@ -17,38 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "nekohook/game/entity.hpp"  // Contains entity and bone info
-#include "nekohook/ui/var.hpp"
+#include "psudocrt/psudocrt.hpp"
 
-namespace nekohook::aimbot {
+#include "entry.hpp"
 
-namespace ui {
-using namespace nekohook::ui;
+#include "nekohook/game/game.hpp"
 
-extern Var<Enum> aimbot_menu;
-extern Var<int> multipoint;
-extern Var<float> multipoint_ratio;
-} // namespace ui
+namespace nekohook {
 
-template<typename PlayerIter>
-class Aimbot {
-public:
-    Aimbot(PlayerIter src, PlayerIter target)
-};
+template<typename T>
+concept Game = std::ranges::range<T::Entitys>;
 
-template<class E>
-void KillTarget(E ent) {
-    local
 }
-extern Entity* highlight_target;
-
-// Module related
-namespace module {
-
-geo::Vec3 GetAutoHitbox(Entity*);
-bool TargetSelection(Entity*);
-bool ShouldAim(Entity*);
-bool CanShoot(Entity*);
-
-}  // namespace module
-}  // namespace neko::features::aimbot

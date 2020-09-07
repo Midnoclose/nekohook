@@ -19,17 +19,11 @@
 
 #pragma once
 
-#if defined(_MSC_VER)
-    #include <experimental/filesystem>
-    namespace fs = std::experimental::filesystem;
-#else
-    #include <filesystem>
-    namespace fs = std::filesystem;
-#endif
+#include <filesystem>
 
 namespace nekohook {
+namespace fs = std::filesystem;
 
-// Get a general location to read and write files
 fs::path GetSaveLocation();
 
-}  // namespace neko::io
+}  // namespace nekohook

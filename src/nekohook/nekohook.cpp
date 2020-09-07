@@ -17,27 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "psudocrt/psudocrt.hpp"
 
-#include "color.hpp"
-#include "geometry.hpp"
+#include "entry.hpp"
 
-namespace nekohook::gfx {
-
-class Canvas {
-public:
-    virtual void StartDraw() = 0;
-    virtual void SetColor(const Color&) = 0;
-    virtual void DrawLine(const Segment&, int thickness) = 0;
-    virtual void DrawOutline(const Box&, int thickness);
-    virtual void DrawFilled(const Box&);
-    virtual void DrawOutline(const Circle&, int thickness);
-    virtual void DrawFilled(const Circle&);
-    virtual void EndDraw() = 0;
-    virtual const Point GetSize() = 0;
-    Box GetBox() { return {{0, 0}, this->GetSize()}; }
-};
-
-// TODO: Texture based canvas
+namespace nekohook {
 
 }

@@ -21,8 +21,6 @@
 
 #include "geometry.hpp"
 
-// Math utilities
-
 namespace nekohook::geo {
 
 Angle2& Angle2::Clamp() {

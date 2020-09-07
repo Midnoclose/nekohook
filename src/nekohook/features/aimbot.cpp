@@ -17,11 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "util/chrono.hpp"
-#include "ui/var.hpp"
-#include "game/trace.hpp"  // so we can vis check
+#include "nekohook/util/chrono.hpp"
+#include "nekohook/ui/var.hpp"
+#include "nekohook/game/trace.hpp"  // so we can vis check
 
-#include "features/aimbot.hpp"
+#include "aimbot.hpp"
 
 namespace nekohook::features::aimbot {
 namespace ui {
@@ -31,7 +31,7 @@ TreeMap menu({"Aimbot"});
 static Var<bool> enabled(menu, "Enabled", false);
 static Var<Enum> priority_mode(menu, "Priority Mode", 1, {
     "SMART", "FOV", "DISTANCE", "HEALTH"});
-static Var<float> fov(menu, "FOV", 180.0f);
+static Var<float> fov(menu, "FOV", 180.0f, 360.0f);
 static Var<float> max_distance(menu, "Max Distance", 8192.0f);
 static Var<Enum> teammates(menu, "ab_teammates", 0, {
     "ENEMY ONLY", "TEAMMATE ONLY", "BOTH"});
@@ -51,14 +51,12 @@ static Var<bool> can_shoot(menu, "Can Shoot", true);
 
 // TODO: create seperate aimbot machines to push more optimizations using priority. big think
 
-static std::vector<Entity::Hitbox> GetMultiBoxes(const Entity::Hitbox& hitbox) {
-    geo::Box<geo::DVec3> ratio = {hitbox.min, hitbox.max};
-    ratio /= ui::multipoint_ratio;
-
-    std::vector<Entity::Hitbox> ret;
-    ret.reserve(ui::multipoint);
-    for (int i = 1; i <= ui::multipoint; i++) // should we use <= or <
-        ret.emplace_back(ratio * i);
+static std::vector<Entity::Hitbox> ScaleBox(const Box auto& hitbox, std::floating_point auto amt) {
+    geo::Box auto ratio = hitbox /= ui::multipoint_ratio;
+    
+    std::vector<decltype(ratio)> scaled(ui::multipoint);
+    for (auto& i : scaled) // should we use <= or <
+        ret[i] = ratio * i;
     return ret;
 }
 
@@ -191,26 +189,20 @@ static std::optional<geo::Vec3> RetrieveAimpoint(LocalPlayer* local_ent,
     return std::nullopt;
 }
 
-static Entity* last_target = nullptr;
-static std::pair<Entity*, geo::Vec3> RetrieveBestTarget(LocalPlayer* local_ent,
-            const geo::Vec3& camera_pos, const geo::Angle2& camera_ang) {
+auto RankTarget(const std::input_iterator auto entity) {
+    <entity> hostile;
+    distance
 
-    auto IsTargetable = [&](Entity* entity) -> std::optional<geo::Vec3> {
-        
-        // TODO: Reformat so that each is more like a checklist, is this false, continue kinda thing
-        if (!entity || entity->IsDormant() || local_ent == entity) 
+    if constexpr (game::entity::Networked<entity>>) {
+        if (entity->IsDormant())
             return std::nullopt;
 
-        Entity::Type type = entity->GetType();
-        if ((type != Entity::Type::kPlayer && type != Entity::Type::kOtherHostile) 
-            || !entity->IsAlive())
-            return std::nullopt;
-
-        bool team = entity->IsEnemy();
-        if ((ui::teammates != 2 && ((ui::teammates == 0) ? !team : team)) 
-            || entity->GetDistance(local_ent) > ui::max_distance
-            || !module::TargetSelection(entity))
-            return std::nullopt;
+    if constexpr (game::) 
+    bool team = entity->IsEnemy();
+    if ((ui::teammates != 2 && ((ui::teammates == 0) ? !team : team)) 
+        || entity->GetDistance(local_ent) > ui::max_distance
+        || !module::TargetSelection(entity))
+        return std::nullopt;
 
         std::optional<geo::Vec3> aimpoint;
         if (!(aimpoint = RetrieveAimpoint(local_ent, entity, camera_pos, camera_ang)) 
@@ -220,6 +212,9 @@ static std::pair<Entity*, geo::Vec3> RetrieveBestTarget(LocalPlayer* local_ent,
         return std::nullopt;
     };
 
+static Entity* last_target = nullptr;
+static std::pair<Entity*, geo::Vec3> FindBestTarget(Player* local_ent, const geo::Vec3& camera_pos, const geo::Angle2& camera_ang) {
+    
     if (ui::target_lock && last_target) {
         std::optional<geo::Vec3> aimpoint = IsTargetable(last_target);
         if (aimpoint)
@@ -317,10 +312,15 @@ public:
     }
 };
 
+template<std::ranges::forward_range EnemyEnts>
+auto GetBestTarget(EnemyEnts ent_mgr) {
+    auto i = ent_mgr.begin();
+    for(
+}
 
-// The main "loop" of the aimbot.
-void WorldTick() {
-
+template<typename ControlledEntity, std::ranges::forward_range KillableTargets>
+bool PointAt(Entity src_ent, const std::ranges::range auto ) {
+    
     auto PreRet1 = [&]() {
         last_target = nullptr;
         highlight_target = nullptr;
@@ -361,7 +361,7 @@ void WorldTick() {
     last_target = target;
 
     // Do smoothaim
-    if (ui::smooth_aim > 0) {
+    /*if (ui::smooth_aim > 0) {
         // TODO, Smooth is only somewhat fixed, it still needs a change to fix
         // the crossing of the y axis (-180, 180)
 
@@ -395,7 +395,7 @@ void WorldTick() {
                     geo::Distance(camera_pos, aimpoint) / 32 < 5)
                 local_ent->Attack();
         }
-    } else {
+    } else {*/
         // Autoshoot
         if (ui::autoshoot) local_ent->Attack();
         // Check weapon time, we only want to aim when the weapon can shoot
@@ -415,7 +415,7 @@ void WorldTick() {
                 local_ent->SetSilentCameraAngle(aim_angles);
                 break;
         }
-    }
+    //}
 }
 
 }  // namespace neko::features::aimbot

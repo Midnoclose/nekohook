@@ -19,9 +19,13 @@
 
 #pragma once
 
-namespace nekohook::gfx {
+#include "nanovg.hpp"
 
-class Canvas;
-Canvas* GetGameCanvas();
+namespace nekohook::gfx::oxide {
+
+NVGcontext* CreateContext(const char* process);
+#if !defined(NEKOHOOK_EXTERNAL) && defined(__linux__)
+NVGcontext* CreateContext(); 
+#endif
 
 }

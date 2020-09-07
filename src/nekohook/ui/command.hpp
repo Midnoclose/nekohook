@@ -31,13 +31,13 @@ namespace nekohook::ui {
 class Command {
 public:
     using Args = std::vector<std::string_view>;
-    using CmdFunc = std::function<void(Args)>;
+    using CmdFunc = std::function<void(std::ostream&, Args)>;
     Command(std::string_view _name, CmdFunc _callback) 
         : name(_name), callback(_callback) {
         Command::list.push_back(this);
     }
 
-    static constexpr std::string_view kPrefix = "n_";
+    static constexpr std::string_view kPrefix = "n";
     const std::string_view name;
 
     void Call(std::string_view input);

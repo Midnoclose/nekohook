@@ -19,10 +19,9 @@
 
 #include <unordered_map>
 
-#include "ui/console.hpp"
-#include "entity.hpp"
+#include "nekohook/ui/console.hpp"
 
-//#include "playerstate.hpp"
+#include "entity.hpp"
 
 namespace nekohook::playerstate {
 /*

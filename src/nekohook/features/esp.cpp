@@ -20,8 +20,8 @@
 #include <string.h>
 #include <algorithm> 
 
-#include "ui/var.hpp"
-#include "gfx/geometry.hpp"
+#include "nekohook/ui/var.hpp"
+#include "nekohook/gfx/geometry.hpp"
 
 #include "esp.hpp"
 

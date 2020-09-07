@@ -19,9 +19,11 @@
 
 #pragma once
 
-#include "game/entity.hpp"
-#include "gfx/color.hpp"
-#include "ui/var.hpp"  // I would like to use catvars
+#include <NanoCanvas/src/NanoCanvas.h>
+
+#include "nekohook/game/entity.hpp"
+#include "nekohook/gfx/color.hpp"
+#include "nekohook/ui/var.hpp"  // I would like to use catvars
 
 namespace nekohook::features::esp {
 
@@ -29,6 +31,8 @@ namespace ui {
 using namespace nekohook::ui;
 extern TreeMap esp_menu;
 }
+
+void Draw(NanoCanvas::Canvas&);
 
 namespace module {
 bool ShouldDrawBox(Entity*);

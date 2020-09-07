@@ -19,10 +19,10 @@
 
 #pragma once
 
-namespace nekohook {
+#include <NanoCanvas/src/NanoCanvas.h>
 
-namespace events {
-    void Draw();
-} 
+namespace nekohook::gfx {
 
-} // namespace nekohook::draw
+void Draw(NanoCanvas::Canvas&);
+
+} // namespace nekohook::gfx

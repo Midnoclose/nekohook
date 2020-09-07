@@ -1,6 +1,9 @@
 
+#include <cassert>
 #include <variant>
 
+#include "nekohook/gfx/color.hpp"
+#include "nekohook/gfx/font.hpp"
 #include "command.hpp"
 
 #pragma once
@@ -10,8 +13,8 @@ namespace nekohook::ui {
 template<typename T>
 class Var;
 
-using Enum = std::initializer_list<std::string_view>;
-using TreeMap = std::initializer_list<std::string_view>;
+using Enum = std::vector<std::string_view>;
+using TreeMap = std::vector<std::string_view>;
 
 class BaseVar {
 public:
@@ -25,15 +28,17 @@ public:
         kColor,
         kFont
     };
-    const Type type;
+public:
     BaseVar(Type, TreeMap, std::string_view _gui_name);
 
+    const Type type;
     const std::string command_name;
     const std::string_view gui_name;
 
-    virtual void Call(Command::Args) = 0;
+    virtual void Call(std::ostream&, Command::Args) = 0;
     virtual std::string GetString() = 0;  // Used by cfg mgr and gui
     virtual void SetString(std::string_view) = 0;
+    virtual void SetDefault() = 0;
 private:
     static inline std::vector<BaseVar*> list;
 public:
@@ -41,56 +46,82 @@ public:
 };
 
 template<typename T>
-class Var : public BaseVar {
+class Var;
+
+template<>
+class Var<bool>: public BaseVar {
 public:
-    Var(TreeMap, std::string_view _gui_name, T _defaults);
+    Var(TreeMap, std::string_view, bool _defaults);
     
-    std::string GetString() override;
-    void SetString(std::string_view) override;
-    void Call(Command::Args) override;
+    std::string GetString() final;
+    void SetString(std::string_view) final;
+    void Call(std::ostream&, Command::Args) final;
+    void SetDefault() final;
 
-    operator T() const { return this->value; }
-    bool operator==(T v) const { return this->value == v; }
+    operator bool() const { return this->value; }
+    bool operator==(bool v) const { return this->value == v; }
+    Var<bool>& operator=(bool v);
 private:
-    T value;
+    bool value;
 public:
-    const T defaults;
-};
-
-template<typename T>
-class MathVar : public BaseVar {
-public:
-    MathVar(TreeMap, std::string name, T _defaults, T min, T max);
-    MathVar(TreeMap, std::string name, T _defaults, T max = 100);
-    std::string GetString() override;
-    void SetString(std::string_view) override;
-    void Call(Command::Args) override;
-
-    inline operator T() const { return this->value; }
-    inline bool operator==(T v) const { return this->value == v; }
-private:
-    T value;
-public:
-    const T defaults, min , max;
+    const bool defaults;
+    std::function<void(bool)> Callback;
 };
 
 template<>
-class Var<int> : public MathVar<int> {
-using MathVar<int>::MathVar;
+class Var<int> : public BaseVar {
+public:
+    Var<int>(TreeMap, std::string_view, int _defaults, int min, int max);
+    Var<int>(TreeMap, std::string_view, int _defaults, int max = 100);
+
+    std::string GetString() override;
+    void SetString(std::string_view) override;
+    void Call(std::ostream&, Command::Args) override;
+    void SetDefault() final;
+
+    operator int() const { return this->value; }
+    bool operator==(int v) const { return this->value == v; }
+    Var<int>& operator=(int v);
+protected:
+    int value;
+public:
+    const int defaults, min, max;
+    std::function<void(int)> Callback;
 };
 template<>
-class Var<float> : public MathVar<float> {
-using MathVar<float>::MathVar;
+class Var<float> : public BaseVar {
+public:
+    Var(TreeMap, std::string_view, float _defaults);
+    Var(TreeMap, std::string_view, float _defaults, float max);
+    Var(TreeMap, std::string_view, float _defaults, float min, float max);
+    std::string GetString() final;
+    void SetString(std::string_view) final;
+    void Call(std::ostream&, Command::Args) final;
+    void SetDefault() final;
+
+    operator float() const { return this->value; }
+    bool operator==(float v) const { return this->value == v; }
+    Var<float>& operator=(float v);
+private:
+    float value;
+public:
+    const float defaults, min, max;
+    std::function<void(float)> Callback;
 };
 
 template<>
 class Var<Enum> : public Var<int> {
 public:
-    Var<Enum>(TreeMap, std::string_view name, int _defaults, Enum _enum);
-    std::string GetString() override;
-    void SetString(std::string_view) override;
-    void Call(Command::Args) override;
+    Var(TreeMap, std::string_view name, int _defaults, Enum _enum);
+    std::string GetString() final;
+    void SetString(std::string_view) final;
+    void Call(std::ostream&, Command::Args) final;
+
+    operator int() const { return this->value; }
+    bool operator==(int v) const { return this->value == v; }
+    using Var<int>::operator=;
 public:
+    const std::vector<std::string_view> internal_enum;
 };
 
 }

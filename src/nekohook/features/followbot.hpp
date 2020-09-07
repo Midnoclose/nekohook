@@ -17,13 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "game/entity.hpp"
+#include <NanoCanvas/src/NanoCanvas.h>
+
+#include "nekohook/game/entity.hpp"
 
 namespace nekohook::features::followbot {
 
 // Followed entity, externed for highlight color
 extern Entity* follow_target;
 
-void Init();
+void Draw(NanoCanvas::Canvas&);
 
 }  // namespace features::followbot

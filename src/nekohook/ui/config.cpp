@@ -18,80 +18,118 @@
  */
 
 #include <fstream>
+#include <rapidjson/document.h>
+#include <rapidjson/istreamwrapper.h>
+#include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/prettywriter.h>
 
-#include "ui/command.hpp"
-#include "ui/console.hpp"
-#include "ui/var.hpp"
-#include "util/filesystem.hpp"
+#include "nekohook/ui/command.hpp"
+#include "nekohook/ui/console.hpp"
+#include "nekohook/ui/var.hpp"
+#include "nekohook/util/filesystem.hpp"
 
 namespace nekohook::ui::cfg {
+namespace rj = rapidjson;
 
-static fs::path save_location = GetSaveLocation() / "cfg";
+static const fs::path save_location = GetSaveLocation() / "cfg";
 
-void Load(const fs::path& cfg_path) {
-    std::ifstream file(save_location / cfg_path);
-    while (file) {
-        std::string buf;
-        std::getline(file, buf);
-        if (!buf.empty()) console::Exec(buf);
-    }
-}
-void Load(std::string_view cfg_name) { Load(fs::path(std::string(cfg_name))); }
+void Load(const fs::path& path) {
+    std::ostream& err = console::err;
 
-void Save(const fs::path& cfg_path) {
+    std::ifstream file;
+    file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    file.open(path);
+
+    rapidjson::Document doc;
+    rj::IStreamWrapper file_w(file);
+    doc.ParseStream(file_w);
+    if (!doc.IsObject()) 
+        throw std::runtime_error("Config file's json doenst start with object");
+
+    rj::Document::ConstMemberIterator f = doc.FindMember("cfg");
+    if (f == doc.MemberEnd())
+        throw std::runtime_error("Config file's json doesnt contain cfg member");
+
+    const rj::Value& c = f->value;
+    if (!c.IsObject())
+        throw std::runtime_error("Config file's json cfg member isnt an object");
     
-    std::fstream file(save_location / cfg_path);
-    for (const auto& catvar : BaseVar::GetList()) {
-        file << catvar->command_name;
-        std::string value = catvar->GetString();
-        if (value.find(' ') != std::string::npos)
-            file << " \"" << value << '"';
-        else
-            file << ' ' << value << '\n';
+    const auto& var_list = ui::BaseVar::GetList();
+    for (const auto& i : c.GetObject()) {
+        if (!i.value.IsString()) {
+            err << "Config file's json value for \""
+            << i.name.GetString() << "\" is not a string" << std::endl;
+            continue;
+        }
+
+        auto find2 = std::find_if(var_list.begin(), var_list.end(), [&](BaseVar* ii){
+            return ii->command_name == std::string_view(i.name.GetString(), i.name.GetStringLength()); 
+        });
+        if (find2 == var_list.end()) {
+            err << "Config files variable \"" << i.name.GetString() << "Not found!" << std::endl;
+            continue;
+        }
+        (*find2)->SetString(i.value.GetString());
     }
 }
-void Save(std::string_view cfg_name) { Save(fs::path(std::string(cfg_name))); }
+void Load(std::string_view cfg_name) { 
+    Load(save_location / cfg_name); 
+}
+
+void Save(const fs::path& path) {
+    std::fstream file;
+    file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    file.open(path);  
+
+    rj::OStreamWrapper file_w(file);
+    rj::PrettyWriter<rj::OStreamWrapper> write(file_w);
+    
+    write.StartObject();
+
+    write.Key("cfg");
+    write.StartObject();
+    for (BaseVar* var : BaseVar::GetList()) {
+        write.Key(var->command_name.c_str(), var->command_name.size());
+        std::string val = var->GetString();
+        write.String(val.c_str(), val.size());
+    }
+    write.EndObject();
+
+    write.EndObject();
+}
+void Save(std::string_view cfg_name) { 
+    Save(save_location / cfg_name); 
+}
 
 std::vector<std::string> ListConfigs() {
     std::vector<std::string> ret;
     for (auto i : fs::directory_iterator(save_location))
-        ret.push_back(i.path().generic_string());
+        ret.push_back(i.path().filename());
     return ret;
 }
 
-static Command LoadConfig("load", [](Command::Args args) {
+static Command LoadConfig("cfg_load", [](std::ostream& out, Command::Args args) {
     if (args.empty()) {
-        console::log << "Missing input argument" << std::endl;
-        return;
-    }
-    try {
-        Load(args[0]);
-        console::log << "Loaded \"" << args[0] << "\"successfully!" << std::endl;
-    } catch (...) {
-        console::log << "Failed to load config: \"" << args[0] << "\"" << std::endl;
-    }
+        out << "Usage: cfg_load <name>" << std::endl; return; }
+
+    Load(args[0]);
+    out << "Loaded \"" << args[0] << "\"successfully!" << std::endl;
 });
 
-static Command SaveConfig("save", [](Command::Args args) {
+static Command SaveConfig("cfg_save", [](std::ostream& out, Command::Args args) {
     if (args.empty()) {
-        console::log << "Missing input argument" << std::endl;
-        return;
-    }
+        out << "Usage: cfg_save <name>" << std::endl; return; }
 
-    try {
-        Save(args[0]);
-        console::log << "Saved \"" << args[0]
-        << "\" successfully!\n";
-    } catch (...) {
-        console::log << "Failed to save config: \"" << args[0] << "\"" << std::endl;
-    }
+    Save(args[0]);
+    out << "Saved config \"" << args[0] << "\" successfully!" << std::endl;
 });
 
-static Command ListConfig("list_configs", [](Command::Args args) {
-    console::log << "List of configs:";
-    for (auto i : ListConfigs())
-        console::log << "\n\t" << i;
-    console::log << std::endl;
+static Command ListConfig("cfg_list", [](std::ostream& out, Command::Args args) {
+    out << "List of configs--";
+    std::vector<std::string> cfgs(ListConfigs());
+    for (std::string& i : cfgs)
+        out << "\n\t" << i;
+    out << std::endl;
 });
 
-}  // namespace neko::configs
+}  // namespace nekohook::ui::cfg

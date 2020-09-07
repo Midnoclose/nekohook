@@ -19,10 +19,10 @@
 
 #include <random>
 
-#include "ui/var.hpp"
-#include "game/trace.hpp"
+#include "nekohook/ui/var.hpp"
+#include "nekohook/game/trace.hpp"
 
-#include "features/antiaim.hpp"
+#include "antiaim.hpp"
 
 namespace nekohook::features::antiaim {
 

@@ -21,7 +21,7 @@
 
 #include <cassert>
 
-#include "game/entity.hpp"
+#include "nekohook/game/entity.hpp"
 
 namespace nekohook::trace {
 

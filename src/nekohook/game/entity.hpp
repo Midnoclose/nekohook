@@ -19,25 +19,21 @@
 
 #pragma once
 
+#include <ranges>
+
 #include "../util/geometry.hpp"
-#include "../gfx/color.hpp"
+#include "../gfx/gfx.hpp"
 
-namespace nekohook {
+namespace nekohook::game {
 
-class LocalPlayer;
+namespace internal {
+
+/*class LocalPlayer;
 class Entity {
-   private:
-    // No constructors allowed
-    Entity() = delete;
-    Entity(const Entity&) = delete;
-    Entity(Entity&&) = delete;
-
-   public:
-    enum class Team { kUnknown, kEnemy, kAlly, kRed, kBlue, kYellow, kGreen };
+public:
     enum class Type {  // Entity Type
         kPlayer,
-        kOtherHostile,  // Not player but still hostile, TODO find better name
-                        // for this
+        kOtherHostile,  // Not player but still hostile, TODO find better name for this
         kProjectile,    // Bullet projectiles count
         kPickupHealth,
         kPickupSheild,
@@ -45,10 +41,8 @@ class Entity {
         kGeneric
     };
 
-    enum BonePos {  // Bone position enum, Add bones as needed, position
-                          // shouldnt matter if everything is positioned in the right places
-
-        kHead,            // Middle section
+    enum BonePos {       
+        kHead,       // Middle section
         kSpineTop,
         kSpineUpper,
         kSpineMiddle,
@@ -70,68 +64,21 @@ class Entity {
     };
 
     // Basic info
-    bool IsDormant() const;
-    bool IsAlive() const;
-    int GetHealth() const;
-    int GetMaxHealth() const;
-    Team GetTeam() const;
-    Type GetType() const;
     std::string_view GetName() const;
-    int GetId() const; // Entity id in the game system
-    std::optional<int32_t> GetUserId() const;  // stuff like steamid etc... just a unique identifier
-
-    // Positional
-    std::optional<geo::Vec3> GetOrigin() const;
-    using Bone = geo::Vec3;
-    using Hitbox = geo::Box<Bone>;
-    std::optional<Hitbox> GetCollision() const;
-    std::optional<Bone> GetBone(BonePos) const;
-    std::optional<Hitbox> GetHitbox(BonePos) const;
-    geo::Vec3 GetCameraPosition() const; // FIXME: Optionals???
-    geo::Angle<2> GetCameraAngle() const;
-    bool IsAirborne() const;
-    float DistanceFromGround() const;
 
     // Util functions
     float GetDistance() const;
     float GetDistance(LocalPlayer*) const;
     bool IsEnemy() const;
     std::optional<geo::Vec3> GetLocation() const;
-    gfx::Color GetColor() const;
-    gfx::Color GetHealthColor() const;
-    
-    // Playerstate
-    enum State { kFriendly = -1, kNone = 0, kRage = 1 };
-    void SetPState(State);
-    State GetPState() const;
-    bool GetHasNoState() const { return !GetPState(); }
-    bool IsRage() const { return this->GetPState() > 0; }
-    bool IsFriendly() const { return this->GetPState() < 0; }
+    NanoCanvas::Color GetColor() const;
+    NanoCanvas::Color GetHealthColor() const;
 
-        
     // Entity manager stuff
     static int GetCount();
     static Entity* Get(int id);
     static LocalPlayer* GetLocalPlayer();
-};
-
-static_assert(!std::is_default_constructible<Entity>::value);
-static_assert(!std::is_copy_constructible<Entity>::value);
-
-// TODO: rename LocalPlayer to something like, OurPlayer, Player etc...
-// This is our char that we control
-class LocalPlayer : public Entity {
-   public:
-    void Attack();
-    void Jump();
-    void WalkTo(geo::Vec3);
-    bool IsThirdperson();
-
-    geo::Vec3 GetCameraPosition();
-    geo::Angle<2> GetCameraAngle();
-    void SetCameraAngle(geo::Angle<2>);
-    void SetSilentCameraAngle(geo::Angle<2>);  // Silent doesnt move our perspective but moves it
-                              // ingame anyways
-};
+};*/
+}
 
 }  // namespace neko

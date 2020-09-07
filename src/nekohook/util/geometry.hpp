@@ -43,9 +43,6 @@ namespace internal {
     auto Distance(T... in) { return glm::distance(in...); }
 #endif
 
-}
-using namespace internal;
-
 template<typename T, int _length>
 class BoxBase;
 
@@ -299,27 +296,7 @@ public:
             this->Expand(*i, amt);
     }
     void Shrink(Direction dir, int amt) { this->Expand(dir, -amt); }
-
-    Box<T> GetReal() {
-        return *this;
-    }
 };
-
-template<typename T_Parent, typename T_This = T_Parent>
-class ChildBox : Box<T_This> {
-    const T_Parent& parent;
-public:
-    template<typename... TT> 
-    ChildBox(T_Parent _parent, TT... args) : Box<T_This>(args...), parent(_parent) {}
-    T_Parent GetReal() {
-        T_Parent real = parent->GetReal();
-        assert(this->size <= real.size - this->origin);
-        return {real.origin + this->origin, this->size};
-    }
-};
-
-using Box2 = Box<IVec2>;
-using Box3 = Box<Vec3>;
 
 template<int T_length>
 class AngleBase;
@@ -380,21 +357,44 @@ public:
     template<typename TT>
     Segment(Ray<T, TT> r, float dist = 8192.0f) : Parent(r.Cast(dist)){}
 };
-using Segment2 = Segment<IVec2>;
-using Segment3 = Segment<Vec3>;
 
-template<typename T_Origin, typename T_Angle>
-class Ray : public std::pair<T_Origin, T_Angle> {
-public:
-    using Parent = std::pair<T_Origin, T_Angle>;
-    using Parent::Parent;
-    using Parent::operator=;
-    T_Origin Cast(float dist = 8192.0f);
+
+} // namespace internal
+
+template<class T>
+concept Vec = requires(T&& t) {
+    { t.x } -> std::floating_point;
+    { t.y } -> std::floating_point;
 };
-using Ray2 = Ray<IVec2, Angle1>;
-using Ray3 = Ray<Vec3, Angle2>;
 
-template<typename T_Origin, typename T_Distance = float>
-using Sphereoid = std::pair<T_Origin, T_Distance>;
+template<class T>
+concept Vec3 = Vec<T> && requires(T&& t) {
+    { t.z } -> std::floating_point;
+};
 
-}  // namespace neko::math
+template<class T>
+concept Vec2 = Vec<T> && !Vec3<T>;
+
+template<class T>
+concept Box = requires(T&& t) {
+    { t.origin } -> Vec;
+    { t.size } -> Vec;
+};
+
+template<class T>
+concept Angle = requires(T&& t) {
+    { t.p } -> std::floating_point;
+    { t.y } -> std::floating_point;
+};
+
+template<class T>
+concept Ray = requires(T&& t) {
+    { std::forward<T>(t).origin } -> Vec;
+    { std::forward<T>(t).angle } -> Angle;
+    //{ std::forward<T>(t).Cast(float) } -> Vec;
+};
+
+template<Vec O, std::floating_point D>
+using Sphereoid = std::pair<O, D>;
+
+}  // namespace nekohook::geo

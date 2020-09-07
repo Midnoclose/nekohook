@@ -19,11 +19,12 @@
 
 #pragma once
 
-#include "ui/var.hpp"
+#include <cstdint>
+#include <nanovg.h>
 
-namespace nekohook::gui {
+#include "geometry.hpp"
 
-void Draw();
-void Register(ui::BaseVar*);
+namespace nekohook::gfx {
+
 
 }

@@ -19,8 +19,8 @@
 
 #include <vector>
 
-#include "ui/var.hpp"
-#include "util/chrono.hpp"
+#include "nekohook/ui/var.hpp"
+#include "nekohook/util/chrono.hpp"
 
 #include "spam.hpp"
 

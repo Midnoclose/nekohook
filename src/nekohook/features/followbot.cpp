@@ -19,10 +19,10 @@
 
 #include <deque>
 
-#include "game/trace.hpp"
-#include "ui/console.hpp"
-#include "ui/var.hpp"
-#include "util/chrono.hpp"
+#include "nekohook/game/trace.hpp"
+#include "nekohook/ui/console.hpp"
+#include "nekohook/ui/var.hpp"
+#include "nekohook/util/chrono.hpp"
 
 #include "followbot.hpp"
 

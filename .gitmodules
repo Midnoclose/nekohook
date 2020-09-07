@@ -1,0 +1,3 @@
+[submodule "src/NanoCanvas"]
+	path = src/NanoCanvas
+	url = https://github.com/Geequlim/NanoCanvas
